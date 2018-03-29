@@ -163,16 +163,18 @@ export abstract class Actor {
 
       this.currentPromise = this.handleMessage(type, payload)
       this.currentlyProcessedMessage = mail
-      try {
-        // FIXME: why do I need a try here? This implementation is now incorrect because when a message processing is cancelled, the result will be undefined
-        result = await this.currentPromise
-      } catch (er) {
-        // FIXME
-      }
+      // try {
+      // FIXME: why do I need a try here? This implementation is now incorrect because when a message processing is cancelled, the result will be undefined
+      result = await this.currentPromise
+      // } catch (er) {
+      //   console.log("cancelled!!!!!!");
+      //   // FIXME
+      // }
       this.currentlyProcessedMessage = undefined
       this.currentPromise = undefined
       success = true
     } catch (ex) {
+      console.log('Caught an exception when handling message')
       this.currentlyProcessedMessage = undefined
       this.currentPromise = undefined
       if (!mail.callback) {
