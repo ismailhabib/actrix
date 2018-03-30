@@ -56,46 +56,48 @@ export function promisify<T extends (...args: any[]) => IterableIterator<any>>(
     return function() {
         const args = arguments;
         const ctx = this;
-        // const runId = ++generatorId;
         const gen: IterableIterator<any> = generator.apply(ctx, args);
         let rejector: (error: any) => void;
         let currentPromise: CancellablePromise<any> | undefined = undefined;
 
-        const res = new Promise(function(resolve, reject) {
+        const res = new Promise((resolve, reject) => {
             let stepId = 0;
             rejector = reject;
 
             function onFulfilled(res: any) {
                 currentPromise = undefined;
-                let ret;
+                let result;
                 try {
-                    ret = gen.next(res);
+                    result = gen.next(res);
                 } catch (e) {
-                    return reject(e);
+                    reject(e);
+                    return;
                 }
 
-                next(ret);
+                next(result);
             }
 
             function onRejected(err: any) {
                 currentPromise = undefined;
-                let ret;
+                let result;
                 try {
-                    ret = gen.throw!(err);
+                    result = gen.throw!(err);
                 } catch (e) {
-                    return reject(e);
+                    reject(e);
+                    return;
                 }
-                next(ret);
+                next(result);
             }
 
             function next(ret: any) {
-                if (ret && typeof ret.then === 'function') {
-                    // an async iterator (you mean a promise?)
+                if (ret && typeof ret.then === "function") {
+                    // an async iterator
                     ret.then(next, reject);
                     return;
                 }
                 if (ret.done) {
-                    return resolve(ret.value);
+                    resolve(ret.value);
+                    return;
                 }
                 currentPromise = Promise.resolve(ret.value) as any;
                 return currentPromise!.then(onFulfilled, onRejected);
@@ -106,11 +108,22 @@ export function promisify<T extends (...args: any[]) => IterableIterator<any>>(
 
         res.cancel = function() {
             try {
-                if (currentPromise && typeof currentPromise.cancel === 'function') {
-                    currentPromise.cancel();
+                if (currentPromise) {
+                    cancelPromise(currentPromise);
                 }
-                gen.return!();
-                rejector(new Error('PROMISE_CANCELLED'));
+                const res = gen.return!();
+                // eat anything that promise would do, it's cancelled!
+                const yieldedPromise = Promise.resolve(res.value);
+                yieldedPromise.then(
+                    () => {
+                        /* nothing */
+                    },
+                    () => {
+                        /* nothing */
+                    }
+                );
+                cancelPromise(yieldedPromise); // maybe it can be cancelled :)
+                rejector(new Error("PROMISE_CANCELLED"));
             } catch (e) {
                 rejector(e); // there could be a throwing finally block
             }
@@ -120,7 +133,7 @@ export function promisify<T extends (...args: any[]) => IterableIterator<any>>(
 }
 
 function cancelPromise(promise: any) {
-    if (typeof promise.cancel === 'function') {
+    if (typeof promise.cancel === "function") {
         promise.cancel();
     }
 }
