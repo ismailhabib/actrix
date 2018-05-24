@@ -6,7 +6,7 @@ export type MailBoxMessage<T> = {
     type: ValidActorMethodPropNames<T>;
     payload: PayloadPropNames<T>;
     senderAddress: Address | null;
-    callback?: (error?: any, result?: any) => void;
+    callback: (error?: any, result?: any) => void;
 };
 
 export type ValidActorMethodProps<T> = Pick<T, ValidActorMethodPropNames<T>>;
@@ -152,15 +152,10 @@ export abstract class Actor {
     };
 
     private executeTick = async () => {
-        // Note: if message drop semantics are added; make sure to call any pending callbacks with error!
         const mail = this.mailBox.shift();
-        if (!mail) {
-            // this is semantically impossible situation, but typescript doesn't know.
-            return;
-        }
         let success = false;
         let result: any;
-        const { type, payload, senderAddress } = mail;
+        const { type, payload, senderAddress, callback } = mail!;
 
         this.context = {
             senderAddress,
@@ -174,21 +169,12 @@ export abstract class Actor {
             success = true;
         } catch (error) {
             console.log("Caught an exception when handling message", error);
-            if (!mail.callback) {
-                console.error(
-                    `Actor ${this.name} failed to handle a message ${JSON.stringify(mail.payload)}`,
-                    error
-                );
-            } else {
-                result = error;
-            }
+            result = error;
         } finally {
             this.currentlyProcessedMessage = undefined;
             this.currentPromise = undefined;
 
-            if (mail.callback) {
-                mail.callback(success ? undefined : result, success ? result : undefined);
-            }
+            callback(success ? undefined : result, success ? result : undefined);
 
             if (this.timerId) {
                 clearTimeout(this.timerId);
