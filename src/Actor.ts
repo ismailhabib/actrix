@@ -98,8 +98,10 @@ export abstract class Actor {
         try {
             this.onNewMessage(type, payload, senderAddress);
         } catch (error) {
-            // TODO: better error message
-            console.log("Not sure why", error);
+            console.log(
+                `Caught an exception on the implementation of 'onNewMessage' on actor ${this.name}`,
+                error
+            );
         }
         const promise = new Promise<any>((resolve, reject) => {
             this.mailBox.push({
