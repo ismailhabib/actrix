@@ -170,13 +170,4 @@ export class ActorSystem {
     private log(...message: any[]) {
         console.log("ActorSystem: ", ...message);
     }
-    private broadcast(
-        event: string,
-        msg: InterActorSystemMessage,
-        callback?: (message: any) => void
-    ) {
-        Object.keys(this.actorSystemRegistry).forEach(key =>
-            this.actorSystemRegistry[key].emit(event, msg, callback)
-        );
-    }
 }

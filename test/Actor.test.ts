@@ -1,5 +1,5 @@
 import { ActorSystem } from "../src/ActorSystem";
-import { Actor } from "../src/Actor";
+import { Actor, ActorRef } from "../src/Actor";
 import { CancellablePromise, promisify } from "../src/Utils";
 import { Address } from "../src/interfaces";
 
@@ -15,6 +15,11 @@ describe("Actor", () => {
             done();
         });
         counterActor.invoke().increment();
+    });
+
+    it("should be able to send message to another actor", () => {
+        const dummyActor = new ActorSystem().createActor("myDummy", DummyActor);
+        dummyActor.invoke().dummy();
     });
 
     it("should be able to cancel execution", async done => {
@@ -59,6 +64,27 @@ describe("Actor", () => {
     });
 });
 
+// Dummy Actor
+type DummyAPI = {
+    dummy: () => Promise<void>;
+    replyDummy: () => Promise<void>;
+};
+
+class DummyActor extends Actor implements DummyAPI {
+    counter = 0;
+    dummy = async () => {
+        this.at<DummyAPI>(this.address).replyDummy();
+    };
+
+    replyDummy = async () => {
+        const senderRef: ActorRef<DummyAPI> = this.context.senderRef!;
+        if (this.counter === 0) {
+            this.at(senderRef).replyDummy();
+        }
+        this.counter++;
+    };
+}
+
 // Counter
 
 type CounterAPI = {
@@ -99,6 +125,7 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
     changeRoom = promisify(this.changeRoomHelper);
 
     registerListener = async (listener: (value: string) => void) => {
+        this.log("listener registered");
         this.listener = listener;
     };
 
@@ -109,7 +136,6 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
             this.currentlyProcessedMessage.type === "changeRoom" &&
             type === "changeRoom"
         ) {
-            console.log("cancelling");
             this.cancelCurrentExecution();
         }
     };
