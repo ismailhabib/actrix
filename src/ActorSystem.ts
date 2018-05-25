@@ -168,6 +168,6 @@ export class ActorSystem {
     }
 
     private log(...message: any[]) {
-        console.log("ActorSystem: ", ...message);
+        console.log(`ActorSystem (${this.name}): `, ...message);
     }
 }

@@ -98,7 +98,7 @@ export abstract class Actor {
         try {
             this.onNewMessage(type, payload, senderAddress);
         } catch (error) {
-            console.log(
+            this.log(
                 `Caught an exception on the implementation of 'onNewMessage' on actor ${this.name}`,
                 error
             );
@@ -168,7 +168,7 @@ export abstract class Actor {
             result = await this.currentPromise;
             success = true;
         } catch (error) {
-            console.log("Caught an exception when handling message", error);
+            this.log("Caught an exception when handling message", error);
             result = error;
         } finally {
             this.currentlyProcessedMessage = undefined;

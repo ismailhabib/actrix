@@ -130,7 +130,6 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
     };
 
     onNewMessage = (type: any, payload: any, senderAddress: Address | null) => {
-        console.log("onNewMessage", this.currentlyProcessedMessage);
         if (
             this.currentlyProcessedMessage &&
             this.currentlyProcessedMessage.type === "changeRoom" &&
@@ -147,9 +146,9 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
 
     private openRoom = async roomName => {
         return new Promise<string>((resolve, reject) => {
-            const openRoomMsg = this.mailBox.find(mail => mail.type === "changeRoom");
-            if (openRoomMsg) {
-                reject();
+            const changeRoomMsg = this.mailBox.find(mail => mail.type === "changeRoom");
+            if (changeRoomMsg) {
+                reject("There are more change room message on the queue, aborting this one");
             }
             setTimeout(() => {
                 resolve(`Welcome to room ${roomName}`);
