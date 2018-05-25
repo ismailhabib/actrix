@@ -24,6 +24,10 @@ or
 npm install actrix
 ```
 
+## Examples
+
+See [actrix-example](https://github.com/ismailhabib/actrix-example) for examples.
+
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/ismailhabib/actrix/tags). 
@@ -36,4 +40,4 @@ See also the list of [contributors](https://github.com/ismailhabib/actrix/contri
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
