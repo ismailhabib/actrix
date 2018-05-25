@@ -11,7 +11,7 @@ import {
 import * as uuid from "uuid";
 import debug from "debug";
 
-const myDebugger = debug("actor:actor-system");
+const myDebugger = debug("actrix:actor-system");
 
 export class ActorSystem {
     name: string;

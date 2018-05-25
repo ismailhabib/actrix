@@ -3,7 +3,7 @@ import { Address, Handler } from "./interfaces";
 import { CancellablePromise } from "./Utils";
 import debug from "debug";
 
-const myDebugger = debug("actor:actor");
+const myDebugger = debug("actrix:actor");
 
 export type MailBoxMessage<T> = {
     type: ValidActorMethodPropNames<T>;
@@ -85,6 +85,11 @@ export abstract class Actor {
         ) as Handler<A>;
     }
 
+    // For some reason the typings is not working properly
+    atSelf() {
+        return this.at<ValidActorMethodProps<this>>(this.address);
+    }
+
     onNewMessage = <K extends ValidActorMethodPropNames<this>, L extends PayloadPropNames<this>>(
         type: K,
         payload: L,
@@ -98,6 +103,9 @@ export abstract class Actor {
         payload: L,
         senderAddress: Address | null
     ): Promise<any> => {
+        this.log(
+            `A new message with type ${type} and payload ${payload} from sender ${senderAddress} is received`
+        );
         try {
             this.onNewMessage(type, payload, senderAddress);
         } catch (error) {

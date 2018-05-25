@@ -63,6 +63,49 @@ describe("Multi-Actor System", () => {
             actorRef.invoke().trigger();
         }, 3000); // give time for the handshake
     });
+
+    it("should throw exception when trying to send message to an actor of a disconnected actor system", done => {
+        serverActor.invoke().registerListener(() => {
+            fail();
+        });
+        const socket = ioClient.connect(`http://localhost:${port}`);
+        const clientActorSystem = new ActorSystem();
+        clientActorSystem.register(socket);
+        const actorRef = clientActorSystem.createActor("clientActor", ClientActor);
+        setTimeout(() => {
+            socket.disconnect();
+            actorRef
+                .invoke()
+                .trigger()
+                .then(
+                    () => {
+                        fail();
+                    },
+                    exception => {
+                        done();
+                    }
+                );
+        }, 1000); // give time for the handshake
+    });
+    it("should allow actors to send message in different actor system after reconnection", done => {
+        serverActor.invoke().registerListener(() => {
+            done();
+        });
+        const socket = ioClient.connect(`http://localhost:${port}`, {
+            reconnection: true,
+            reconnectionDelay: 10
+        });
+        const clientActorSystem = new ActorSystem();
+        clientActorSystem.register(socket);
+        const actorRef = clientActorSystem.createActor("clientActor", ClientActor);
+        setTimeout(() => {
+            socket.disconnect();
+            socket.connect();
+            setTimeout(() => {
+                actorRef.invoke().trigger();
+            }, 1000);
+        }, 1000); // give time for the handshake
+    });
 });
 
 type ClientAPI = {
@@ -71,7 +114,10 @@ type ClientAPI = {
 
 class ClientActor extends Actor implements ClientAPI {
     trigger = async () => {
-        this.at<ServerAPI>({ actorSystemName: "server", localAddress: "serverActor" }).connect();
+        await this.at<ServerAPI>({
+            actorSystemName: "server",
+            localAddress: "serverActor"
+        }).connect();
     };
 }
 
