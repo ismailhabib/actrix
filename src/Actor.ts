@@ -1,6 +1,9 @@
 import { ActorSystem } from "./ActorSystem";
 import { Address, Handler } from "./interfaces";
 import { CancellablePromise } from "./Utils";
+import debug from "debug";
+
+const myDebugger = debug("actor:actor");
 
 export type MailBoxMessage<T> = {
     type: ValidActorMethodPropNames<T>;
@@ -127,10 +130,11 @@ export abstract class Actor {
     };
 
     protected log(...message: any[]) {
-        console.log(`${this.name}:`, ...message);
+        myDebugger(`[${this.name}]`, ...message);
     }
 
     protected cancelCurrentExecution = () => {
+        this.log("Cancel current execution");
         if (this.currentPromise && typeof (this.currentPromise as any).cancel === "function") {
             (this.currentPromise as CancellablePromise<any>).cancel();
         }
@@ -142,6 +146,7 @@ export abstract class Actor {
         type: string,
         payload: any
     ): Promise<any> | CancellablePromise<any> {
+        this.log(`Handling message of type ${type} and payload ${payload}`);
         return (this as any)[type](payload);
     }
 

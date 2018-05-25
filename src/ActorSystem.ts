@@ -9,6 +9,9 @@ import {
     LocalAddress
 } from "./interfaces";
 import * as uuid from "uuid";
+import debug from "debug";
+
+const myDebugger = debug("actor:actor-system");
 
 export class ActorSystem {
     name: string;
@@ -168,6 +171,6 @@ export class ActorSystem {
     }
 
     private log(...message: any[]) {
-        console.log(`ActorSystem (${this.name}): `, ...message);
+        myDebugger(`[${this.name}]`, ...message);
     }
 }
