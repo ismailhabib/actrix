@@ -7,7 +7,8 @@ import * as ioClient from "socket.io-client";
 
 describe("Actor System", () => {
     it("should be instantiable", () => {
-        const actorSystem = new ActorSystem();
+        // noinspection TsLint
+        new ActorSystem();
     });
 
     it("should handle exception when message is sent to an actor in a non-existent ActorSystem", async done => {

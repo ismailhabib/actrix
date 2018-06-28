@@ -61,7 +61,6 @@ export function promisify<T extends (...args: any[]) => IterableIterator<any>>(
         let currentPromise: CancellablePromise<any> | undefined = undefined;
 
         const res = new Promise((resolve, reject) => {
-            let stepId = 0;
             rejector = reject;
 
             function onFulfilled(res: any) {
@@ -74,6 +73,7 @@ export function promisify<T extends (...args: any[]) => IterableIterator<any>>(
                     return;
                 }
 
+                // noinspection JSIgnoredPromiseFromCall
                 next(result);
             }
 
@@ -86,6 +86,7 @@ export function promisify<T extends (...args: any[]) => IterableIterator<any>>(
                     reject(e);
                     return;
                 }
+                // noinspection JSIgnoredPromiseFromCall
                 next(result);
             }
 

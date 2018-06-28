@@ -87,8 +87,7 @@ export class ActorSystem {
             actorSystemName: this.name,
             localAddress: address
         };
-        const actor = new Class(name, fullAddress, this);
-        this.actorRegistry[address] = actor;
+        this.actorRegistry[address] = new Class(name, fullAddress, this);
         return this.ref<ValidActorMethodProps<T>>(fullAddress);
     };
 
