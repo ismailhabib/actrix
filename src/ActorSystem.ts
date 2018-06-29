@@ -1,13 +1,6 @@
 import { Actor, ActorCons, ActorRef, ValidActorMethodProps } from "./Actor";
 import { EventEmitter } from "events";
-import {
-    Message,
-    Address,
-    Channel,
-    Handler,
-    InterActorSystemMessage,
-    LocalAddress
-} from "./interfaces";
+import { Message, Address, Channel, Handler, InterActorSystemMessage } from "./interfaces";
 import * as uuid from "uuid";
 import debug from "debug";
 
@@ -15,8 +8,8 @@ const myDebugger = debug("actrix:actor-system");
 
 export class ActorSystem {
     name: string;
+    protected actorRegistry: { [address: string]: Actor };
     private actorSystemRegistry: { [address: string]: Channel } = {};
-    private actorRegistry: { [address: string]: Actor };
 
     constructor(name?: string) {
         this.name = name || uuid.v1();
