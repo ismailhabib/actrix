@@ -1,9 +1,9 @@
 import { ActorSystem } from "./ActorSystem";
 import { LocalAddress } from "./interfaces";
-import { Actor } from "./Actor";
+import { Actor, ActorCons } from "./Actor";
 
 export class TestActorSystem extends ActorSystem {
-    getRealActor(localAddress: LocalAddress): Actor {
-        return this.actorRegistry[localAddress];
+    getRealActor<T extends Actor>(localAddress: LocalAddress): T {
+        return this.actorRegistry[localAddress] as T;
     }
 }
