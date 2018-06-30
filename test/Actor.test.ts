@@ -17,6 +17,16 @@ describe("Actor", () => {
         counterActor.invoke().increment();
     });
 
+    it("should be possible to send messages with more than 1 payload", done => {
+        const dummyActor = new ActorSystem().createActor("myDummy", DummyActor);
+        dummyActor.invoke().registerCallback((param1, param2) => {
+            expect(param1).toBe("one");
+            expect(param2).toBe("two");
+            done();
+        });
+        dummyActor.invoke().dummy2Param("one", "two");
+    });
+
     it("should be able to send message to another actor", () => {
         const dummyActor = new ActorSystem().createActor("myDummy", DummyActor);
         dummyActor.invoke().dummy();
@@ -68,10 +78,13 @@ describe("Actor", () => {
 type DummyAPI = {
     dummy: () => Promise<void>;
     replyDummy: () => Promise<void>;
+    registerCallback: (callback: (param1: string, param2: string) => void) => Promise<void>;
+    dummy2Param: (param1: string, param2: string) => Promise<void>;
 };
 
 class DummyActor extends Actor implements DummyAPI {
     counter = 0;
+    callback: (param1: string, param2: string) => void;
     dummy = async () => {
         this.at<DummyAPI>(this.address).replyDummy();
     };
@@ -82,6 +95,14 @@ class DummyActor extends Actor implements DummyAPI {
             this.at(senderRef).replyDummy();
         }
         this.counter++;
+    };
+
+    registerCallback = async callback => {
+        this.callback = callback;
+    };
+
+    dummy2Param = async (param1: string, param2: string) => {
+        this.callback(param1, param2);
     };
 }
 
@@ -129,7 +150,7 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
         this.listener = listener;
     };
 
-    onNewMessage = (type: any, payload: any, senderAddress: Address | null) => {
+    onNewMessage = (type: any, senderAddress: Address | null, ...payload: any[]) => {
         if (
             this.currentlyProcessedMessage &&
             this.currentlyProcessedMessage.type === "changeRoom" &&

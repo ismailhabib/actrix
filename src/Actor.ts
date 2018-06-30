@@ -7,7 +7,7 @@ const myDebugger = debug("actrix:actor");
 
 export type MailBoxMessage<T> = {
     type: ValidActorMethodPropNames<T>;
-    payload: PayloadPropNames<T>;
+    payload: PayloadPropNames<T>[];
     senderAddress: Address | null;
     callback: (error?: any, result?: any) => void;
 };
@@ -37,12 +37,12 @@ export class ActorRef<T> {
             {},
             {
                 get: (target, prop, receiver) => {
-                    return (payload: any) =>
+                    return (...payload: any[]) =>
                         this.actorSystem.sendMessage(
                             this.address,
                             prop as any,
-                            payload,
-                            sender || null
+                            sender || null,
+                            ...payload
                         );
                 }
             }
@@ -78,8 +78,13 @@ export abstract class Actor {
             {},
             {
                 get: (target, prop, receiver) => {
-                    return (payload: any) =>
-                        this.actorSystem.sendMessage(targetRef, prop as any, payload, this.address);
+                    return (...payload: any[]) =>
+                        this.actorSystem.sendMessage(
+                            targetRef,
+                            prop as any,
+                            this.address,
+                            ...payload
+                        );
                 }
             }
         ) as Handler<A>;
@@ -92,22 +97,22 @@ export abstract class Actor {
 
     onNewMessage = <K extends ValidActorMethodPropNames<this>, L extends PayloadPropNames<this>>(
         type: K,
-        payload: L,
-        senderAddress: Address | null
+        senderAddress: Address | null,
+        ...payload: L[]
     ) => {
         // should be overridden by implementator (when necessary)
     };
 
     pushToMailbox = <K extends ValidActorMethodPropNames<this>, L extends PayloadPropNames<this>>(
         type: K,
-        payload: L,
-        senderAddress: Address | null
+        senderAddress: Address | null,
+        ...payload: L[]
     ): Promise<any> => {
         this.log(
             `A new message with type ${type} and payload ${payload} from sender ${senderAddress} is received`
         );
         try {
-            this.onNewMessage(type, payload, senderAddress);
+            this.onNewMessage(type, senderAddress, ...payload);
         } catch (error) {
             this.log(
                 `Caught an exception on the implementation of 'onNewMessage' on actor ${this.name}`,
@@ -152,10 +157,10 @@ export abstract class Actor {
     // good for now though since it doesn't affect end-user
     private handleMessage<K extends keyof this>(
         type: string,
-        payload: any
+        ...payload: any[]
     ): Promise<any> | CancellablePromise<any> {
         this.log(`Handling message of type ${type} and payload ${payload}`);
-        return (this as any)[type](payload);
+        return (this as any)[type](...payload);
     }
 
     private scheduleNextTick = () => {
@@ -176,7 +181,7 @@ export abstract class Actor {
         };
 
         this.currentlyProcessedMessage = mail;
-        this.currentPromise = this.handleMessage(type, payload);
+        this.currentPromise = this.handleMessage(type, ...payload);
         try {
             result = await this.currentPromise;
             success = true;
