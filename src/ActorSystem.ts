@@ -53,19 +53,21 @@ export class ActorSystem {
                             `Sending the message to the appropriate actor. Type: ${type}, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        this.sendMessage(actorRef, type, payload, senderAddress);
+                        this.sendMessage(actorRef, type, senderAddress, ...payload);
                     } else {
                         this.log(
                             `Sending the question to the appropriate actor. Type: ${type}, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        this.sendMessage(actorRef, type, payload, senderAddress).then(message => {
-                            this.log(
-                                `Received an answer, sending the answer "${message}" for the question with type: ${type}, sender: ${senderAddress}, and payload:`,
-                                payload
-                            );
-                            cb(message);
-                        });
+                        this.sendMessage(actorRef, type, senderAddress, ...payload).then(
+                            message => {
+                                this.log(
+                                    `Received an answer, sending the answer "${message}" for the question with type: ${type}, sender: ${senderAddress}, and payload:`,
+                                    payload
+                                );
+                                cb(message);
+                            }
+                        );
                     }
                 } else {
                     this.log("Unable to find the recipient of the message");
@@ -106,8 +108,8 @@ export class ActorSystem {
     sendMessage = (
         target: ActorRef<any> | Address,
         type: string,
-        payload: any,
-        senderAddress: Address | null
+        senderAddress: Address | null,
+        ...payload: any[]
     ): Promise<any> => {
         this.log(
             `Received a request to send a message with type: ${type}`,
@@ -129,7 +131,7 @@ export class ActorSystem {
             const actor = this.actorRegistry[address.localAddress];
             if (actor) {
                 this.log("Found the actor. Sending the message");
-                return actor.pushToMailbox(type, payload, senderAddress);
+                return actor.pushToMailbox(type, senderAddress, ...payload);
             } else {
                 this.log("Unable to find the actor. It might have died");
                 return Promise.reject("Actor not found");

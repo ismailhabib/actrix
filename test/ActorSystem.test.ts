@@ -52,7 +52,9 @@ describe("Multi-Actor System", () => {
     });
 
     it("should allow actors to send message in different actor system", done => {
-        serverActor.invoke().registerListener(() => {
+        serverActor.invoke().registerListener((param1, param2) => {
+            expect(param1).toBe("1");
+            expect(param2).toBe("2");
             done();
         });
         const socket = ioClient.connect(`http://localhost:${port}`);
@@ -117,22 +119,22 @@ class ClientActor extends Actor implements ClientAPI {
         await this.at<ServerAPI>({
             actorSystemName: "server",
             localAddress: "serverActor"
-        }).connect();
+        }).connect("1", "2");
     };
 }
 
 type ServerAPI = {
-    registerListener: (listener: () => void) => Promise<void>;
-    connect: () => Promise<void>;
+    registerListener: (listener: (param1: string, param2: string) => void) => Promise<void>;
+    connect: (param1: string, param2: string) => Promise<void>;
 };
 
 class ServerActor extends Actor implements ServerAPI {
-    listener: (() => void) | undefined;
+    listener: ((param1: string, param2: string) => void) | undefined;
 
-    registerListener = async (listener: () => void) => {
+    registerListener = async (listener: (param1: string, param2: string) => void) => {
         this.listener = listener;
     };
-    connect = async () => {
-        this.listener && this.listener();
+    connect = async (param1: string, param2: string) => {
+        this.listener && this.listener(param1, param2);
     };
 }
