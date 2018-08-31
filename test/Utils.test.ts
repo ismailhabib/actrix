@@ -1,6 +1,6 @@
 import { promisify } from "../src/Utils";
 
-function delay(time) {
+function delay(time: number) {
     return new Promise((resolve, reject) => {
         setTimeout(resolve, time);
     });

@@ -23,10 +23,11 @@ export type PayloadPropNames<T> = {
     [K in Exclude<keyof T, keyof Actor>]: T[K] extends (_: infer S) => Promise<any> ? S : never
 }[Exclude<keyof T, keyof Actor>];
 
-export type ActorCons<T extends Actor> = new (
+export type ActorCons<T extends Actor<K>, K = undefined> = new (
     name: string,
     address: Address,
-    actorSystem: ActorSystem
+    actorSystem: ActorSystem,
+    options?: K
 ) => T;
 
 export class ActorRef<T> {
@@ -50,7 +51,7 @@ export class ActorRef<T> {
     }
 }
 
-export abstract class Actor {
+export abstract class Actor<T = undefined> {
     protected name: string;
     protected mailBox: MailBoxMessage<this>[] = [];
     protected currentlyProcessedMessage: MailBoxMessage<this> | undefined;
@@ -61,16 +62,21 @@ export abstract class Actor {
         senderAddress: null,
         senderRef: null
     };
+
     private timerId: any | null;
     private currentPromise: Promise<any> | CancellablePromise<any> | undefined;
 
     constructor(
         name: string,
         protected address: Address,
-        protected actorSystem: ActorSystem // private handlers: Handler<>
+        protected actorSystem: ActorSystem,
+        options?: T
     ) {
         this.name = name;
         this.timerId = null;
+        setTimeout(() => {
+            this.init(options);
+        });
     }
 
     at<A>(targetRef: ActorRef<A> | Address) {
@@ -92,7 +98,8 @@ export abstract class Actor {
 
     // For some reason the typings is not working properly
     atSelf() {
-        return this.at<ValidActorMethodProps<this>>(this.address);
+        // return this.at<ValidActorMethodProps<this>>(this.address);
+        return this.at<any>(this.address); // TODO: introduce generic for actor
     }
 
     onNewMessage = <K extends ValidActorMethodPropNames<this>, L extends PayloadPropNames<this>>(
@@ -141,6 +148,10 @@ export abstract class Actor {
     ref = <T>(address: Address) => {
         return this.actorSystem.ref<T>(address);
     };
+
+    protected init(options?: T) {
+        // can be implemented by the concrete actor
+    }
 
     protected log(...message: any[]) {
         myDebugger(`[${this.name}]`, ...message);
