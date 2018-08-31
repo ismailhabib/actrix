@@ -6,9 +6,19 @@ import debug from "debug";
 
 const myDebugger = debug("actrix:actor-system");
 
+export type ActorConstructorOptions<T extends Actor<K>, K = undefined> = {
+    name: string;
+    Class: ActorCons<T, K>;
+    paramOptions?: K;
+};
+// TODO: Would be great if this works.
+// K extends undefined
+//     ? { name: string; Class: ActorCons<T> }
+//     : { name: string; Class: ActorCons<T, K>; paramOptions: K };
+
 export class ActorSystem {
     name: string;
-    protected actorRegistry: { [address: string]: Actor };
+    protected actorRegistry: { [address: string]: Actor<any> };
     private actorSystemRegistry: { [address: string]: Channel } = {};
 
     constructor(name?: string) {
@@ -75,14 +85,21 @@ export class ActorSystem {
             }
         });
     }
-    createActor = <T extends Actor>(name: string, Class: ActorCons<T>) => {
+    createActor = <T extends Actor<K>, K = undefined>(options: ActorConstructorOptions<T, K>) => {
+        const { name, Class } = options;
         this.log(`Creating an actor with name: ${name} and type: ${Class.name}`);
         const address = name; // TODO: should have a proper mechanism to generate address
         const fullAddress = {
             actorSystemName: this.name,
             localAddress: address
         };
-        this.actorRegistry[address] = new Class(name, fullAddress, this);
+
+        this.actorRegistry[address] = new Class(
+            name,
+            fullAddress,
+            this,
+            (options as any).paramOptions
+        );
         return this.ref<ValidActorMethodProps<T>>(fullAddress);
     };
 

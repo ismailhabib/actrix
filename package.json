@@ -69,8 +69,7 @@
         "statements": 80
       }
     },
-    "collectCoverage": true,
-    "mapCoverage": true
+    "collectCoverage": true
   },
   "devDependencies": {
     "@types/debug": "^0.0.30",

@@ -5,20 +5,29 @@ import { Address } from "../src/interfaces";
 
 describe("Actor", () => {
     it("should be instantiable", () => {
-        const counterActor = new ActorSystem().createActor("myCounter", CounterActor);
+        const counterActor = new ActorSystem().createActor({
+            name: "myCounter",
+            Class: CounterActor,
+            paramOptions: () => {
+                /* nothing */
+            }
+        });
     });
 
     it("should be possible to send messages with proper payloads", done => {
-        const counterActor = new ActorSystem().createActor("myCounter", CounterActor);
-        counterActor.invoke().registerListener(counter => {
-            expect(counter).toBe(1);
-            done();
+        const counterActor = new ActorSystem().createActor({
+            name: "myCounter",
+            Class: CounterActor,
+            paramOptions: (counter: number) => {
+                expect(counter).toBe(1);
+                done();
+            }
         });
         counterActor.invoke().increment();
     });
 
     it("should be possible to send messages with more than 1 payload", done => {
-        const dummyActor = new ActorSystem().createActor("myDummy", DummyActor);
+        const dummyActor = new ActorSystem().createActor({ name: "myDummy", Class: DummyActor });
         dummyActor.invoke().registerCallback((param1, param2) => {
             expect(param1).toBe("one");
             expect(param2).toBe("two");
@@ -28,12 +37,15 @@ describe("Actor", () => {
     });
 
     it("should be able to send message to another actor", () => {
-        const dummyActor = new ActorSystem().createActor("myDummy", DummyActor);
+        const dummyActor = new ActorSystem().createActor({ name: "myDummy", Class: DummyActor });
         dummyActor.invoke().dummy();
     });
 
     it("should be able to cancel execution", async done => {
-        const switcherActor = new ActorSystem().createActor("mySwitcher", SwitcherActor);
+        const switcherActor = new ActorSystem().createActor({
+            name: "mySwitcher",
+            Class: SwitcherActor
+        });
         switcherActor.invoke().registerListener(message => {
             expect(message).toBe("Welcome to room three");
             done();
@@ -84,7 +96,7 @@ type DummyAPI = {
 
 class DummyActor extends Actor implements DummyAPI {
     counter = 0;
-    callback: (param1: string, param2: string) => void;
+    callback: ((param1: string, param2: string) => void) | undefined;
     dummy = async () => {
         this.at<DummyAPI>(this.address).replyDummy();
     };
@@ -97,32 +109,35 @@ class DummyActor extends Actor implements DummyAPI {
         this.counter++;
     };
 
-    registerCallback = async callback => {
+    registerCallback = async (callback: (param1: string, param2: string) => void) => {
         this.callback = callback;
     };
 
     dummy2Param = async (param1: string, param2: string) => {
-        this.callback(param1, param2);
+        this.callback && this.callback(param1, param2);
     };
 }
 
 // Counter
 
 type CounterAPI = {
-    registerListener: (listener: (counter: number) => void) => Promise<void>;
     increment: () => Promise<void>;
 };
 
-class CounterActor extends Actor implements CounterAPI {
+type CounterActorListener = (counter: number) => void;
+
+class CounterActor extends Actor<CounterActorListener> implements CounterAPI {
     counter = 0;
     listener: ((counter: number) => void) | undefined;
-    registerListener = async (listener: (counter: number) => void) => {
-        this.listener = listener;
-    };
+
     increment = async () => {
         this.counter = await asyncInc(this.counter);
         this.listener && this.listener(this.counter);
     };
+
+    protected init(listener: CounterActorListener) {
+        this.listener = listener;
+    }
 }
 
 async function asyncInc(value: number) {
@@ -165,7 +180,7 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
         this.listener && this.listener(value);
     }
 
-    private openRoom = async roomName => {
+    private openRoom = async (roomName: RoomName) => {
         return new Promise<string>((resolve, reject) => {
             const changeRoomMsg = this.mailBox.find(mail => mail.type === "changeRoom");
             if (changeRoomMsg) {
