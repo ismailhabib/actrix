@@ -1,9 +1,6 @@
 import { ActorSystem } from "./ActorSystem";
 import { Address, Handler } from "./interfaces";
 import { CancellablePromise } from "./Utils";
-import debug from "debug";
-
-const myDebugger = debug("actrix:actor");
 
 export type MailBoxMessage<T> = {
     type: ValidActorMethodPropNames<T>;
@@ -154,7 +151,12 @@ export abstract class Actor<T = undefined> {
     }
 
     protected log(...message: any[]) {
-        myDebugger(`[${this.name}]`, ...message);
+        if (
+            (process.env && process.env.ACTRIX_DEBUG) ||
+            (typeof window !== "undefined" && (window as any).ACTRIX_DEBUG)
+        ) {
+            console.log(`[${this.name}]`, ...message);
+        }
     }
 
     protected cancelCurrentExecution = () => {

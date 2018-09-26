@@ -2,9 +2,6 @@ import { Actor, ActorCons, ActorRef, ValidActorMethodProps } from "./Actor";
 import { EventEmitter } from "events";
 import { Message, Address, Channel, Handler, InterActorSystemMessage } from "./interfaces";
 import * as uuid from "uuid";
-import debug from "debug";
-
-const myDebugger = debug("actrix:actor-system");
 
 export type ActorConstructorOptions<T extends Actor<K>, K = undefined> = {
     name: string;
@@ -182,6 +179,11 @@ export class ActorSystem {
     }
 
     private log(...message: any[]) {
-        myDebugger(`[${this.name}]`, ...message);
+        if (
+            (process.env && process.env.ACTRIX_DEBUG) ||
+            (typeof window !== "undefined" && (window as any).ACTRIX_DEBUG)
+        ) {
+            console.log(`[${this.name}]`, ...message);
+        }
     }
 }
