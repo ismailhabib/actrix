@@ -1,12 +1,20 @@
 import { Actor, ActorCons, ActorRef, ValidActorMethodProps } from "./Actor";
 import { EventEmitter } from "events";
-import { Message, Address, Channel, Handler, InterActorSystemMessage } from "./interfaces";
+import {
+    Message,
+    Address,
+    Channel,
+    Handler,
+    InterActorSystemMessage,
+    Strategy
+} from "./interfaces";
 import * as uuid from "uuid";
 
 export type ActorConstructorOptions<T extends Actor<K>, K = undefined> = {
     name: string;
     Class: ActorCons<T, K>;
     paramOptions?: K;
+    strategies?: Strategy[];
 };
 // TODO: Would be great if this works.
 // K extends undefined
@@ -95,7 +103,8 @@ export class ActorSystem {
             name,
             fullAddress,
             this,
-            (options as any).paramOptions
+            (options as any).paramOptions,
+            (options as any).strategies
         );
         return this.ref<ValidActorMethodProps<T>>(fullAddress);
     };
