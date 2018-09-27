@@ -119,11 +119,7 @@ export abstract class Actor<T = undefined> {
         );
 
         if (this.strategies && this.strategies.includes("IgnoreOlderMessageWithTheSameType")) {
-            if (
-                this.currentlyProcessedMessage &&
-                this.currentlyProcessedMessage.type === "changeRoom" &&
-                type === "changeRoom"
-            ) {
+            if (this.currentlyProcessedMessage && this.currentlyProcessedMessage.type === type) {
                 this.cancelCurrentExecution();
             }
         }
@@ -200,6 +196,12 @@ export abstract class Actor<T = undefined> {
         let success = false;
         let result: any;
         const { type, payload, senderAddress, callback } = mail!;
+
+        if (this.strategies && this.strategies.includes("IgnoreOlderMessageWithTheSameType")) {
+            if (this.currentlyProcessedMessage && this.currentlyProcessedMessage.type === type) {
+                return;
+            }
+        }
 
         this.context = {
             senderAddress,
