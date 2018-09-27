@@ -197,39 +197,45 @@ export abstract class Actor<T = undefined> {
         let result: any;
         const { type, payload, senderAddress, callback } = mail!;
 
-        if (this.strategies && this.strategies.includes("IgnoreOlderMessageWithTheSameType")) {
-            if (this.currentlyProcessedMessage && this.currentlyProcessedMessage.type === type) {
-                return;
-            }
-        }
-
         this.context = {
             senderAddress,
             senderRef: senderAddress ? this.ref(senderAddress) : null
         };
 
+        if (this.strategies && this.strategies.includes("IgnoreOlderMessageWithTheSameType")) {
+            if (this.mailBox.find(message => message.type === type)) {
+                this.log(
+                    `Ignoring message with type ${type} because there are more messages with the same type in the queue.`
+                );
+                result = "There are new messages with the same type. This message is ignored";
+            }
+        }
+
         this.currentlyProcessedMessage = mail;
-        this.currentPromise = this.handleMessage(type, ...payload);
-        try {
-            result = await this.currentPromise;
-            success = true;
-        } catch (error) {
-            this.log("Caught an exception when handling message", error);
-            result = error;
-        } finally {
-            this.currentlyProcessedMessage = undefined;
-            this.currentPromise = undefined;
 
-            callback(success ? undefined : result, success ? result : undefined);
-
-            if (this.timerId) {
-                clearTimeout(this.timerId);
-                this.timerId = null;
+        if (!result) {
+            this.currentPromise = this.handleMessage(type, ...payload);
+            try {
+                result = await this.currentPromise;
+                success = true;
+            } catch (error) {
+                this.log("Caught an exception when handling message", error);
+                result = error;
             }
+        }
 
-            if (this.mailBox.length) {
-                this.scheduleNextTick();
-            }
+        this.currentlyProcessedMessage = undefined;
+        this.currentPromise = undefined;
+
+        callback(success ? undefined : result, success ? result : undefined);
+
+        if (this.timerId) {
+            clearTimeout(this.timerId);
+            this.timerId = null;
+        }
+
+        if (this.mailBox.length) {
+            this.scheduleNextTick();
         }
     };
 }

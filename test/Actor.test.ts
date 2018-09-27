@@ -41,7 +41,7 @@ describe("Actor", () => {
         dummyActor.invoke().dummy();
     });
 
-    it("should be able to cancel execution", async done => {
+    it("should be able to cancel execution", done => {
         const switcherActor = new ActorSystem().createActor({
             name: "mySwitcher",
             Class: SwitcherActor
@@ -85,10 +85,10 @@ describe("Actor", () => {
             );
     });
 
-    it("should be able to ignore older messages with the same type", async done => {
+    it("should be able to ignore older messages with the same type", done => {
         const switcherActor = new ActorSystem().createActor({
             name: "mySwitcher",
-            Class: SwitcherActor,
+            Class: SwitcherActor2,
             strategies: ["IgnoreOlderMessageWithTheSameType"]
         });
         switcherActor.invoke().registerListener(message => {
