@@ -38,3 +38,5 @@ export type InterActorSystemMessage =
           mode: "handshake";
           address: string;
       };
+
+export type Strategy = "IgnoreOlderMessageWithTheSameType";

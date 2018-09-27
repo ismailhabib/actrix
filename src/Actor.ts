@@ -1,5 +1,5 @@
 import { ActorSystem } from "./ActorSystem";
-import { Address, Handler } from "./interfaces";
+import { Address, Handler, Strategy } from "./interfaces";
 import { CancellablePromise } from "./Utils";
 
 export type MailBoxMessage<T> = {
@@ -24,7 +24,8 @@ export type ActorCons<T extends Actor<K>, K = undefined> = new (
     name: string,
     address: Address,
     actorSystem: ActorSystem,
-    options?: K
+    options?: K,
+    strategies?: Strategy[]
 ) => T;
 
 export class ActorRef<T> {
@@ -67,7 +68,8 @@ export abstract class Actor<T = undefined> {
         name: string,
         protected address: Address,
         protected actorSystem: ActorSystem,
-        options?: T
+        options?: T,
+        protected strategies?: Strategy[]
     ) {
         this.name = name;
         this.timerId = null;
@@ -115,6 +117,13 @@ export abstract class Actor<T = undefined> {
         this.log(
             `A new message with type ${type} and payload ${payload} from sender ${senderAddress} is received`
         );
+
+        if (this.strategies && this.strategies.includes("IgnoreOlderMessageWithTheSameType")) {
+            if (this.currentlyProcessedMessage && this.currentlyProcessedMessage.type === type) {
+                this.cancelCurrentExecution();
+            }
+        }
+
         try {
             this.onNewMessage(type, senderAddress, ...payload);
         } catch (error) {
@@ -193,28 +202,40 @@ export abstract class Actor<T = undefined> {
             senderRef: senderAddress ? this.ref(senderAddress) : null
         };
 
+        if (this.strategies && this.strategies.includes("IgnoreOlderMessageWithTheSameType")) {
+            if (this.mailBox.find(message => message.type === type)) {
+                this.log(
+                    `Ignoring message with type ${type} because there are more messages with the same type in the queue.`
+                );
+                result = "There are new messages with the same type. This message is ignored";
+            }
+        }
+
         this.currentlyProcessedMessage = mail;
-        this.currentPromise = this.handleMessage(type, ...payload);
-        try {
-            result = await this.currentPromise;
-            success = true;
-        } catch (error) {
-            this.log("Caught an exception when handling message", error);
-            result = error;
-        } finally {
-            this.currentlyProcessedMessage = undefined;
-            this.currentPromise = undefined;
 
-            callback(success ? undefined : result, success ? result : undefined);
-
-            if (this.timerId) {
-                clearTimeout(this.timerId);
-                this.timerId = null;
+        if (!result) {
+            this.currentPromise = this.handleMessage(type, ...payload);
+            try {
+                result = await this.currentPromise;
+                success = true;
+            } catch (error) {
+                this.log("Caught an exception when handling message", error);
+                result = error;
             }
+        }
 
-            if (this.mailBox.length) {
-                this.scheduleNextTick();
-            }
+        this.currentlyProcessedMessage = undefined;
+        this.currentPromise = undefined;
+
+        callback(success ? undefined : result, success ? result : undefined);
+
+        if (this.timerId) {
+            clearTimeout(this.timerId);
+            this.timerId = null;
+        }
+
+        if (this.mailBox.length) {
+            this.scheduleNextTick();
         }
     };
 }

@@ -41,10 +41,55 @@ describe("Actor", () => {
         dummyActor.invoke().dummy();
     });
 
-    it("should be able to cancel execution", async done => {
+    it("should be able to cancel execution", done => {
         const switcherActor = new ActorSystem().createActor({
             name: "mySwitcher",
             Class: SwitcherActor
+        });
+        switcherActor.invoke().registerListener(message => {
+            expect(message).toBe("Welcome to room three");
+            done();
+        });
+        switcherActor
+            .invoke()
+            .changeRoom("one")
+            .then(
+                () => {
+                    /* nothing */
+                },
+                () => {
+                    /* nothing */
+                }
+            );
+        switcherActor
+            .invoke()
+            .changeRoom("two")
+            .then(
+                () => {
+                    /* nothing */
+                },
+                () => {
+                    /* nothing */
+                }
+            );
+        switcherActor
+            .invoke()
+            .changeRoom("three")
+            .then(
+                () => {
+                    /* nothing */
+                },
+                () => {
+                    /* nothing */
+                }
+            );
+    });
+
+    it("should be able to ignore older messages with the same type", done => {
+        const switcherActor = new ActorSystem().createActor({
+            name: "mySwitcher",
+            Class: SwitcherActor2,
+            strategies: ["IgnoreOlderMessageWithTheSameType"]
         });
         switcherActor.invoke().registerListener(message => {
             expect(message).toBe("Welcome to room three");
@@ -186,6 +231,28 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
             if (changeRoomMsg) {
                 reject("There are more change room message on the queue, aborting this one");
             }
+            setTimeout(() => {
+                resolve(`Welcome to room ${roomName}`);
+            }, 1000);
+        });
+    };
+}
+class SwitcherActor2 extends Actor implements SwitcherActorAPI {
+    listener: ((value: string) => void) | undefined;
+    changeRoom = promisify(this.changeRoomHelper);
+
+    registerListener = async (listener: (value: string) => void) => {
+        this.log("listener registered");
+        this.listener = listener;
+    };
+
+    private *changeRoomHelper(roomName: RoomName) {
+        const value = yield this.openRoom(roomName);
+        this.listener && this.listener(value);
+    }
+
+    private openRoom = async (roomName: RoomName) => {
+        return new Promise<string>((resolve, reject) => {
             setTimeout(() => {
                 resolve(`Welcome to room ${roomName}`);
             }, 1000);
