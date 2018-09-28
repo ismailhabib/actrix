@@ -29,6 +29,46 @@ describe("Actor", () => {
         expect(actorSystem.findActor(address)).toBe(null);
     });
 
+    it("should be removable by using address", () => {
+        const actorSystem = new ActorSystem();
+        const counterActor = actorSystem.createActor({
+            name: "myCounter",
+            actorClass: CounterActor,
+            paramOptions: () => {
+                /* nothing */
+            }
+        });
+
+        const address = counterActor.address;
+        actorSystem.removeActor(counterActor.address);
+        expect(actorSystem.findActor(address)).toBe(null);
+    });
+
+    it("should throw error when trying to remove non-existent actor", () => {
+        const actorSystem = new ActorSystem();
+        expect(() => {
+            actorSystem.removeActor({
+                actorSystemName: actorSystem.name,
+                localAddress: "random_value"
+            });
+        }).toThrowError();
+    });
+
+    it("should throw error when trying to remove actor that does not belong to the actor system", () => {
+        const actorSystem = new ActorSystem();
+        const actorSystem2 = new ActorSystem();
+        const counterActor = actorSystem.createActor({
+            name: "myCounter",
+            actorClass: CounterActor,
+            paramOptions: () => {
+                /* nothing */
+            }
+        });
+        expect(() => {
+            actorSystem2.removeActor(counterActor);
+        }).toThrowError();
+    });
+
     it("should be possible to send messages with proper payloads", done => {
         const counterActor = new ActorSystem().createActor({
             name: "myCounter",
