@@ -1,23 +1,78 @@
 import { ActorSystem } from "../src/ActorSystem";
 import { Actor, ActorRef } from "../src/Actor";
 import { CancellablePromise, promisify } from "../src/Utils";
-import { Address } from "../src/interfaces";
+import { Address, Listener } from "../src/interfaces";
 
 describe("Actor", () => {
     it("should be instantiable", () => {
         const counterActor = new ActorSystem().createActor({
             name: "myCounter",
-            Class: CounterActor,
+            actorClass: CounterActor,
             paramOptions: () => {
                 /* nothing */
             }
         });
     });
 
+    it("should be removable", () => {
+        const actorSystem = new ActorSystem();
+        const counterActor = actorSystem.createActor({
+            name: "myCounter",
+            actorClass: CounterActor,
+            paramOptions: () => {
+                /* nothing */
+            }
+        });
+
+        const address = counterActor.address;
+        actorSystem.removeActor(counterActor);
+        expect(actorSystem.findActor(address)).toBe(null);
+    });
+
+    it("should be removable by using address", () => {
+        const actorSystem = new ActorSystem();
+        const counterActor = actorSystem.createActor({
+            name: "myCounter",
+            actorClass: CounterActor,
+            paramOptions: () => {
+                /* nothing */
+            }
+        });
+
+        const address = counterActor.address;
+        actorSystem.removeActor(counterActor.address);
+        expect(actorSystem.findActor(address)).toBe(null);
+    });
+
+    it("should throw error when trying to remove non-existent actor", () => {
+        const actorSystem = new ActorSystem();
+        expect(() => {
+            actorSystem.removeActor({
+                actorSystemName: actorSystem.name,
+                localAddress: "random_value"
+            });
+        }).toThrowError();
+    });
+
+    it("should throw error when trying to remove actor that does not belong to the actor system", () => {
+        const actorSystem = new ActorSystem();
+        const actorSystem2 = new ActorSystem();
+        const counterActor = actorSystem.createActor({
+            name: "myCounter",
+            actorClass: CounterActor,
+            paramOptions: () => {
+                /* nothing */
+            }
+        });
+        expect(() => {
+            actorSystem2.removeActor(counterActor);
+        }).toThrowError();
+    });
+
     it("should be possible to send messages with proper payloads", done => {
         const counterActor = new ActorSystem().createActor({
             name: "myCounter",
-            Class: CounterActor,
+            actorClass: CounterActor,
             paramOptions: (counter: number) => {
                 expect(counter).toBe(1);
                 done();
@@ -27,7 +82,10 @@ describe("Actor", () => {
     });
 
     it("should be possible to send messages with more than 1 payload", done => {
-        const dummyActor = new ActorSystem().createActor({ name: "myDummy", Class: DummyActor });
+        const dummyActor = new ActorSystem().createActor({
+            name: "myDummy",
+            actorClass: DummyActor
+        });
         dummyActor.invoke().registerCallback((param1, param2) => {
             expect(param1).toBe("one");
             expect(param2).toBe("two");
@@ -37,18 +95,21 @@ describe("Actor", () => {
     });
 
     it("should be able to send message to another actor", () => {
-        const dummyActor = new ActorSystem().createActor({ name: "myDummy", Class: DummyActor });
+        const dummyActor = new ActorSystem().createActor({
+            name: "myDummy",
+            actorClass: DummyActor
+        });
         dummyActor.invoke().dummy();
     });
 
     it("should be able to cancel execution", done => {
         const switcherActor = new ActorSystem().createActor({
             name: "mySwitcher",
-            Class: SwitcherActor
-        });
-        switcherActor.invoke().registerListener(message => {
-            expect(message).toBe("Welcome to room three");
-            done();
+            actorClass: SwitcherActor,
+            paramOptions: message => {
+                expect(message).toBe("Welcome to room three");
+                done();
+            }
         });
         switcherActor
             .invoke()
@@ -88,12 +149,12 @@ describe("Actor", () => {
     it("should be able to ignore older messages with the same type", done => {
         const switcherActor = new ActorSystem().createActor({
             name: "mySwitcher",
-            Class: SwitcherActor2,
+            actorClass: SwitcherActor2,
+            paramOptions: message => {
+                expect(message).toBe("Welcome to room three");
+                done();
+            },
             strategies: ["IgnoreOlderMessageWithTheSameType"]
-        });
-        switcherActor.invoke().registerListener(message => {
-            expect(message).toBe("Welcome to room three");
-            done();
         });
         switcherActor
             .invoke()
@@ -169,18 +230,16 @@ type CounterAPI = {
     increment: () => Promise<void>;
 };
 
-type CounterActorListener = (counter: number) => void;
-
-class CounterActor extends Actor<CounterActorListener> implements CounterAPI {
+class CounterActor extends Actor<Listener<number>> implements CounterAPI {
     counter = 0;
-    listener: ((counter: number) => void) | undefined;
+    listener: Listener<number> | undefined;
 
     increment = async () => {
         this.counter = await asyncInc(this.counter);
         this.listener && this.listener(this.counter);
     };
 
-    protected init(listener: CounterActorListener) {
+    protected init(listener: Listener<number>) {
         this.listener = listener;
     }
 }
@@ -197,18 +256,12 @@ async function asyncInc(value: number) {
 type RoomName = "one" | "two" | "three";
 
 type SwitcherActorAPI = {
-    registerListener: (listener: (value: string) => void) => Promise<void>;
     changeRoom: (roomName: RoomName) => CancellablePromise<void>;
 };
 
-class SwitcherActor extends Actor implements SwitcherActorAPI {
-    listener: ((value: string) => void) | undefined;
+class SwitcherActor extends Actor<Listener<string>> implements SwitcherActorAPI {
+    listener: Listener<string> | undefined;
     changeRoom = promisify(this.changeRoomHelper);
-
-    registerListener = async (listener: (value: string) => void) => {
-        this.log("listener registered");
-        this.listener = listener;
-    };
 
     onNewMessage = (type: any, senderAddress: Address | null, ...payload: any[]) => {
         if (
@@ -219,6 +272,9 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
             this.cancelCurrentExecution();
         }
     };
+    protected init(listener: Listener<string>) {
+        this.listener = listener;
+    }
 
     private *changeRoomHelper(roomName: RoomName) {
         const value = yield this.openRoom(roomName);
@@ -237,14 +293,14 @@ class SwitcherActor extends Actor implements SwitcherActorAPI {
         });
     };
 }
-class SwitcherActor2 extends Actor implements SwitcherActorAPI {
-    listener: ((value: string) => void) | undefined;
+
+class SwitcherActor2 extends Actor<Listener<string>> implements SwitcherActorAPI {
+    listener: Listener<string> | undefined;
     changeRoom = promisify(this.changeRoomHelper);
 
-    registerListener = async (listener: (value: string) => void) => {
-        this.log("listener registered");
+    protected init(listener: Listener<string>) {
         this.listener = listener;
-    };
+    }
 
     private *changeRoomHelper(roomName: RoomName) {
         const value = yield this.openRoom(roomName);

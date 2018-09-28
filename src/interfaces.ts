@@ -40,3 +40,5 @@ export type InterActorSystemMessage =
       };
 
 export type Strategy = "IgnoreOlderMessageWithTheSameType";
+
+export type Listener<T> = (value: T) => void;

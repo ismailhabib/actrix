@@ -12,7 +12,7 @@ import * as uuid from "uuid";
 
 export type ActorConstructorOptions<T extends Actor<K>, K = undefined> = {
     name: string;
-    Class: ActorCons<T, K>;
+    actorClass: ActorCons<T, K>;
     paramOptions?: K;
     strategies?: Strategy[];
 };
@@ -90,16 +90,17 @@ export class ActorSystem {
             }
         });
     }
+
     createActor = <T extends Actor<K>, K = undefined>(options: ActorConstructorOptions<T, K>) => {
-        const { name, Class } = options;
-        this.log(`Creating an actor with name: ${name} and type: ${Class.name}`);
+        const { name, actorClass } = options;
+        this.log(`Creating an actor with name: ${name} and type: ${actorClass.name}`);
         const address = name; // TODO: should have a proper mechanism to generate address
         const fullAddress = {
             actorSystemName: this.name,
             localAddress: address
         };
 
-        this.actorRegistry[address] = new Class(
+        this.actorRegistry[address] = new actorClass(
             name,
             fullAddress,
             this,
@@ -107,6 +108,26 @@ export class ActorSystem {
             (options as any).strategies
         );
         return this.ref<ValidActorMethodProps<T>>(fullAddress);
+    };
+
+    removeActor = (refOrAddress: ActorRef<any> | Address) => {
+        let address: Address;
+        if (refOrAddress instanceof ActorRef) {
+            address = refOrAddress.address;
+        } else {
+            address = refOrAddress;
+        }
+
+        if (address.actorSystemName !== this.name) {
+            throw new Error("Cannot remove actor that does not belong to this actor system");
+        }
+
+        const actor = this.actorRegistry[address.localAddress];
+        if (actor) {
+            delete this.actorRegistry[address.localAddress];
+        } else {
+            throw new Error("Unable to remove actor. The specified actor not found");
+        }
     };
 
     ref = <T>(address: Address): ActorRef<T> => {
