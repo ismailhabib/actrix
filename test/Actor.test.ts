@@ -14,6 +14,21 @@ describe("Actor", () => {
         });
     });
 
+    it("should be removable", () => {
+        const actorSystem = new ActorSystem();
+        const counterActor = actorSystem.createActor({
+            name: "myCounter",
+            actorClass: CounterActor,
+            paramOptions: () => {
+                /* nothing */
+            }
+        });
+
+        const address = counterActor.address;
+        actorSystem.removeActor(counterActor);
+        expect(actorSystem.findActor(address)).toBe(null);
+    });
+
     it("should be possible to send messages with proper payloads", done => {
         const counterActor = new ActorSystem().createActor({
             name: "myCounter",

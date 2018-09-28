@@ -49,7 +49,7 @@ export class ActorRef<T> {
     }
 }
 
-export abstract class Actor<T = undefined> {
+export abstract class Actor<InitParam = undefined> {
     protected name: string;
     protected mailBox: MailBoxMessage<this>[] = [];
     protected currentlyProcessedMessage: MailBoxMessage<this> | undefined;
@@ -68,7 +68,7 @@ export abstract class Actor<T = undefined> {
         name: string,
         protected address: Address,
         protected actorSystem: ActorSystem,
-        options?: T,
+        options?: InitParam,
         protected strategies?: Strategy[]
     ) {
         this.name = name;
@@ -155,7 +155,7 @@ export abstract class Actor<T = undefined> {
         return this.actorSystem.ref<T>(address);
     };
 
-    protected init(options?: T) {
+    protected init(options?: InitParam) {
         // can be implemented by the concrete actor
     }
 
