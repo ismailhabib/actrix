@@ -41,7 +41,7 @@ describe("Multi-Actor System", () => {
         port = server.address().port;
         io = socketIO(server);
         actorSystem = new ActorSystem("server");
-        serverActor = actorSystem.createActor({ name: "serverActor", Class: ServerActor });
+        serverActor = actorSystem.createActor({ name: "serverActor", actorClass: ServerActor });
         io.of("/").on("connection", socket => {
             actorSystem.register(socket);
         });
@@ -60,7 +60,10 @@ describe("Multi-Actor System", () => {
         const socket = ioClient.connect(`http://localhost:${port}`);
         const clientActorSystem = new ActorSystem();
         clientActorSystem.register(socket);
-        const actorRef = clientActorSystem.createActor({ name: "clientActor", Class: ClientActor });
+        const actorRef = clientActorSystem.createActor({
+            name: "clientActor",
+            actorClass: ClientActor
+        });
         setTimeout(() => {
             actorRef.invoke().trigger();
         }, 3000); // give time for the handshake
@@ -73,7 +76,10 @@ describe("Multi-Actor System", () => {
         const socket = ioClient.connect(`http://localhost:${port}`);
         const clientActorSystem = new ActorSystem();
         clientActorSystem.register(socket);
-        const actorRef = clientActorSystem.createActor({ name: "clientActor", Class: ClientActor });
+        const actorRef = clientActorSystem.createActor({
+            name: "clientActor",
+            actorClass: ClientActor
+        });
         setTimeout(() => {
             socket.disconnect();
             actorRef
@@ -99,7 +105,10 @@ describe("Multi-Actor System", () => {
         });
         const clientActorSystem = new ActorSystem();
         clientActorSystem.register(socket);
-        const actorRef = clientActorSystem.createActor({ name: "clientActor", Class: ClientActor });
+        const actorRef = clientActorSystem.createActor({
+            name: "clientActor",
+            actorClass: ClientActor
+        });
         setTimeout(() => {
             socket.disconnect();
             socket.connect();
