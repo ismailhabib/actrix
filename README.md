@@ -72,10 +72,10 @@ const actorRef = actorSystem.createActor(options);
 
 Create a new actor inside the actorSystem. The options parameter are as follow:
 
-**name**: _(Required)_ A string representing the name of your actor instance
-**actorClass**: _(Required)_ The class definition of the actor
-**paramOptions**: _(Optional)_ The value you want to pass to the actor during initialization. Only needed when you define the type generic `T` as explained in the actor template
-**strategies**: _(Optional)_ List of strategies you want to use for your actor. At the moment it has only one possible value: "IgnoreOlderMessageWithTheSameType" which can be used to optimize your actor to only execute the most recent message of the same type
+**name**: _(Required)_ A string representing the name of your actor instance<br/>
+**actorClass**: _(Required)_ The class definition of the actor<br/>
+**paramOptions**: _(Optional)_ The value you want to pass to the actor during initialization. Only needed when you define the type generic `T` as explained in the actor template<br/>
+**strategies**: _(Optional)_ List of strategies you want to use for your actor. At the moment it has only one possible value: `IgnoreOlderMessageWithTheSameType` which can be used to optimize your actor to only execute the most recent message of the same type
 
 ### Sending a Message to Actors
 
@@ -85,14 +85,14 @@ Create a new actor inside the actorSystem. The options parameter are as follow:
 this.at(actorRef).yourMethodName(payload?);
 ```
 
-**actorRef**: _(Required)_ the target actorRef where we send the message to
+**actorRef**: _(Required)_ the target actorRef where we send the message to<br/>
 **payload**: _(As defined by the target actor)_ payload of the message as defined by the target actor
 
 ```TypeScript
 this.at<TargetActorAPI>(address).yourMethodName(payload?);
 ```
 
-**address**: _(Required)_ the target address where we send the message to, if `TargetActorAPI` is not specified then there will be no compile-time check
+**address**: _(Required)_ the target address where we send the message to, if `TargetActorAPI` is not specified then there will be no compile-time check<br/>
 **payload**: _(As defined by the target actor)_ payload of the message as defined by the target actor
 
 #### From Everywhere Else
@@ -102,7 +102,8 @@ actorRef.invoke(sender?).yourMethodName(payload?);
 ```
 
 This is the typical way to send a message to an actor from outside of actors. Sender parameter is optional, but if you need to use it, better to just use the previous API.
-**sender**: _(Optional)_ the address of the sender
+
+**sender**: _(Optional)_ the address of the sender<br/>
 **payload**: _(As defined by the target actor)_ payload of the message as defined by the target actor
 
 ### Replying to Messages
