@@ -75,23 +75,21 @@ Create a new actor inside the actorSystem. The options parameter are as follow:
 name: (Required) A string representing the name of your actor instance
 actorClass: (Required) The class definition of the actor
 paramOptions: (Optional) The value you want to pass to the actor during initialization. Only needed when you define the type generic `T` as explained in the actor template
-strategies: (Optional) List of strategies you want to use for your actor. At the moment it has only one possible value: "IgnoreOlderMessageWithTheSameType" which can be used to optimize your actor to only execute the most recent message of the same type.
-
+strategies: (Optional) List of strategies you want to use for your actor. At the moment it has only one possible value: "IgnoreOlderMessageWithTheSameType" which can be used to optimize your actor to only execute the most recent message of the same type
 ```
 
 ### Sending a Message to Actors
 
 #### From an Actor
 
-```
+```TypeScript
 this.at(actorRef).yourMethodName(payload?);
 ```
 
 actorRef: (Required) the target actorRef where we send the message to
 payload: (As defined by the target actor) payload of the message as defined by the target actor
 
-
-```
+```TypeScript
 this.at<TargetActorAPI>(address).yourMethodName(payload?);
 ```
 
@@ -100,7 +98,7 @@ payload: (As defined by the target actor) payload of the message as defined by t
 
 #### From Everywhere Else
 
-```
+```TypeScript
 actorRef.invoke(sender?).yourMethodName(payload);
 ```
 
@@ -110,14 +108,14 @@ payload: (As defined by the target actor) payload of the message as defined by t
 
 ### Replying to Messages
 
-```
+```TypeScript
 const senderRef = this.context.senderRef;
 this.at(senderRef).yourMethodName(payload);
 ```
 
 ### Getting Address of Actors
 
-```
+```TypeScript
 const address = actorRef.address;
 ```
 
