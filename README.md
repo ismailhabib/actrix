@@ -34,7 +34,7 @@ Actor is a unit of concurrency where you can define some behavior, similar to an
 
 Follow the following template to define an actor.
 
-```
+```TypeScript
 // The interface to "talk" to the actor
 type YourActorAPI = {
     yourMethodName: (payload: PayloadType) => Promise<void>; // the exposed "method". They should always be in form of function which returns Promise/CancellablePromise
@@ -58,7 +58,7 @@ class YourActor extends Actor<number> implements YourActorAPI {
 
 ### Create Actor Systems
 
-```
+```TypeScript
 const actorSystem = new ActorSystem(name?);
 ```
 
@@ -66,17 +66,16 @@ Create a new actor system with a specified string as the name. When name is not 
 
 ### Create Actors
 
-```
+```TypeScript
 const actorRef = actorSystem.createActor(options);
 ```
 
 Create a new actor inside the actorSystem. The options parameter are as follow:
-```
-name: (Required) A string representing the name of your actor instance
-actorClass: (Required) The class definition of the actor
-paramOptions: (Optional) The value you want to pass to the actor during initialization. Only needed when you define the type generic `T` as explained in the actor template
-strategies: (Optional) List of strategies you want to use for your actor. At the moment it has only one possible value: "IgnoreOlderMessageWithTheSameType" which can be used to optimize your actor to only execute the most recent message of the same type
-```
+
+**name**: _(Required)_ A string representing the name of your actor instance
+**actorClass**: _(Required)_ The class definition of the actor
+**paramOptions**: _(Optional)_ The value you want to pass to the actor during initialization. Only needed when you define the type generic `T` as explained in the actor template
+**strategies**: _(Optional)_ List of strategies you want to use for your actor. At the moment it has only one possible value: "IgnoreOlderMessageWithTheSameType" which can be used to optimize your actor to only execute the most recent message of the same type
 
 ### Sending a Message to Actors
 
@@ -86,31 +85,31 @@ strategies: (Optional) List of strategies you want to use for your actor. At the
 this.at(actorRef).yourMethodName(payload?);
 ```
 
-actorRef: (Required) the target actorRef where we send the message to
-payload: (As defined by the target actor) payload of the message as defined by the target actor
+**actorRef**: _(Required)_ the target actorRef where we send the message to
+**payload**: _(As defined by the target actor)_ payload of the message as defined by the target actor
 
 ```TypeScript
 this.at<TargetActorAPI>(address).yourMethodName(payload?);
 ```
 
-address: (Required) the target address where we send the message to, if TargetActorAPI is not specified then there will be no compile-time check
-payload: (As defined by the target actor) payload of the message as defined by the target actor
+**address**: _(Required)_ the target address where we send the message to, if `TargetActorAPI` is not specified then there will be no compile-time check
+**payload**: _(As defined by the target actor)_ payload of the message as defined by the target actor
 
 #### From Everywhere Else
 
 ```TypeScript
-actorRef.invoke(sender?).yourMethodName(payload);
+actorRef.invoke(sender?).yourMethodName(payload?);
 ```
 
 This is the typical way to send a message to an actor from outside of actors. Sender parameter is optional, but if you need to use it, better to just use the previous API.
-sender: (Optional) the address of the sender
-payload: (As defined by the target actor) payload of the message as defined by the target actor
+**sender**: _(Optional)_ the address of the sender
+**payload**: _(As defined by the target actor)_ payload of the message as defined by the target actor
 
 ### Replying to Messages
 
 ```TypeScript
 const senderRef = this.context.senderRef;
-this.at(senderRef).yourMethodName(payload);
+this.at(senderRef).yourMethodName(payload?);
 ```
 
 ### Getting Address of Actors
