@@ -68,13 +68,13 @@ export class ActorSystem {
                             `Sending the message to the appropriate actor. Type: ${type}, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        this.sendMessage(actorRef, type, senderAddress, ...payload);
+                        this.sendMessageAndWait(actorRef, type, senderAddress, ...payload);
                     } else {
                         this.log(
                             `Sending the question to the appropriate actor. Type: ${type}, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        this.sendMessage(actorRef, type, senderAddress, ...payload).then(
+                        this.sendMessageAndWait(actorRef, type, senderAddress, ...payload).then(
                             message => {
                                 this.log(
                                     `Received an answer, sending the answer "${message}" for the question with type: ${type}, sender: ${senderAddress}, and payload:`,
@@ -150,6 +150,32 @@ export class ActorSystem {
     };
 
     sendMessage = (
+        target: ActorRef<any> | Address,
+        type: string,
+        senderAddress: Address | null,
+        ...payload: any[]
+    ): void => {
+        this.sendMessageAndWait(target, type, senderAddress, payload).then(
+            () => {
+                /* do nothing */
+            },
+            error => {
+                this.log(
+                    `Catch an error when executing message with type ${type}`,
+                    "Target",
+                    target,
+                    "Sender",
+                    senderAddress,
+                    "Payload",
+                    payload,
+                    "Error",
+                    error
+                );
+            }
+        );
+    };
+
+    sendMessageAndWait = (
         target: ActorRef<any> | Address,
         type: string,
         senderAddress: Address | null,

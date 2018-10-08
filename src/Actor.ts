@@ -9,6 +9,7 @@ export type MailBoxMessage<T> = {
     callback: (error?: any, result?: any) => void;
 };
 
+export type ActorExternalAPI<T> = { [K in ValidActorMethodPropNames<T>]: void };
 export type ValidActorMethodProps<T> = Pick<T, ValidActorMethodPropNames<T>>;
 export type ValidActorMethodPropNames<T> = {
     [K in Exclude<keyof T, keyof Actor>]: T[K] extends (...args: any[]) => infer R
@@ -31,13 +32,21 @@ export type ActorCons<T extends Actor<K>, K = undefined> = new (
 export class ActorRef<T> {
     constructor(public address: Address, private actorSystem: ActorSystem) {}
 
-    invoke(sender?: Address) {
+    send(sender?: Address) {
+        return this.invoke(sender) as ActorExternalAPI<T>;
+    }
+
+    ask(sender?: Address) {
+        return this.invoke(sender) as ValidActorMethodProps<T>;
+    }
+
+    private invoke(sender?: Address) {
         return new Proxy(
             {},
             {
                 get: (target, prop, receiver) => {
                     return (...payload: any[]) =>
-                        this.actorSystem.sendMessage(
+                        this.actorSystem.sendMessageAndWait(
                             this.address,
                             prop as any,
                             sender || null,
@@ -45,7 +54,7 @@ export class ActorRef<T> {
                         );
                 }
             }
-        ) as ValidActorMethodProps<T>;
+        );
     }
 }
 
@@ -84,7 +93,7 @@ export abstract class Actor<InitParam = undefined> {
             {
                 get: (target, prop, receiver) => {
                     return (...payload: any[]) =>
-                        this.actorSystem.sendMessage(
+                        this.actorSystem.sendMessageAndWait(
                             targetRef,
                             prop as any,
                             this.address,
