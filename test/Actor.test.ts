@@ -78,7 +78,7 @@ describe("Actor", () => {
                 done();
             }
         });
-        counterActor.invoke().increment();
+        counterActor.send().increment();
     });
 
     it("should be possible to send messages with more than 1 payload", done => {
@@ -86,12 +86,12 @@ describe("Actor", () => {
             name: "myDummy",
             actorClass: DummyActor
         });
-        dummyActor.invoke().registerCallback((param1, param2) => {
+        dummyActor.send().registerCallback((param1, param2) => {
             expect(param1).toBe("one");
             expect(param2).toBe("two");
             done();
         });
-        dummyActor.invoke().dummy2Param("one", "two");
+        dummyActor.send().dummy2Param("one", "two");
     });
 
     it("should be able to send message to another actor", () => {
@@ -99,7 +99,7 @@ describe("Actor", () => {
             name: "myDummy",
             actorClass: DummyActor
         });
-        dummyActor.invoke().dummy();
+        dummyActor.send().dummy();
     });
 
     it("should be able to cancel execution", done => {
@@ -111,39 +111,9 @@ describe("Actor", () => {
                 done();
             }
         });
-        switcherActor
-            .invoke()
-            .changeRoom("one")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
-        switcherActor
-            .invoke()
-            .changeRoom("two")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
-        switcherActor
-            .invoke()
-            .changeRoom("three")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
+        switcherActor.send().changeRoom("one");
+        switcherActor.send().changeRoom("two");
+        switcherActor.send().changeRoom("three");
     });
 
     it("should be able to ignore older messages with the same type", done => {
@@ -156,39 +126,9 @@ describe("Actor", () => {
             },
             strategies: ["IgnoreOlderMessageWithTheSameType"]
         });
-        switcherActor
-            .invoke()
-            .changeRoom("one")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
-        switcherActor
-            .invoke()
-            .changeRoom("two")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
-        switcherActor
-            .invoke()
-            .changeRoom("three")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
+        switcherActor.send().changeRoom("one");
+        switcherActor.send().changeRoom("two");
+        switcherActor.send().changeRoom("three");
     });
 });
 

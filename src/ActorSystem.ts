@@ -155,7 +155,7 @@ export class ActorSystem {
         senderAddress: Address | null,
         ...payload: any[]
     ): void => {
-        this.sendMessageAndWait(target, type, senderAddress, payload).then(
+        this.sendMessageAndWait(target, type, senderAddress, ...payload).then(
             () => {
                 /* do nothing */
             },

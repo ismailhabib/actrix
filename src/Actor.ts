@@ -9,7 +9,33 @@ export type MailBoxMessage<T> = {
     callback: (error?: any, result?: any) => void;
 };
 
-export type ActorExternalAPI<T> = { [K in ValidActorMethodPropNames<T>]: void };
+export type ActorExternalAPI<T> = {
+    [K in ValidActorMethodPropNames<T>]: T[K] extends () => any
+        ? () => void
+        : T[K] extends (arg1: infer A1) => any
+            ? (arg: A1) => void
+            : T[K] extends (arg1: infer A1, arg2: infer A2) => any
+                ? (arg1: A1, arg2: A2) => void
+                : T[K] extends (arg1: infer A1, arg2: infer A2, arg3: infer A3) => any
+                    ? (arg1: A1, arg2: A2, arg3: A3) => void
+                    : T[K] extends (
+                          arg1: infer A1,
+                          arg2: infer A2,
+                          arg3: infer A3,
+                          arg4: infer A4
+                      ) => any
+                        ? (arg1: A1, arg2: A2, arg3: A3, arg4: A4) => void
+                        : T[K] extends (
+                              arg1: infer A1,
+                              arg2: infer A2,
+                              arg3: infer A3,
+                              arg4: infer A4,
+                              arg5: infer A5
+                          ) => any
+                            ? (arg1: A1, arg2: A2, arg3: A3, arg4: A4, arg5: A5) => void
+                            : never
+};
+
 export type ValidActorMethodProps<T> = Pick<T, ValidActorMethodPropNames<T>>;
 export type ValidActorMethodPropNames<T> = {
     [K in Exclude<keyof T, keyof Actor>]: T[K] extends (...args: any[]) => infer R
@@ -29,33 +55,30 @@ export type ActorCons<T extends Actor<K>, K = undefined> = new (
     strategies?: Strategy[]
 ) => T;
 
+function createProxy(actorSystem: ActorSystem, targetAddress: Address, sender?: Address) {
+    return new Proxy(
+        {},
+        {
+            get: (target, prop, receiver) => {
+                return (...payload: any[]) => {
+                    actorSystem.sendMessage(targetAddress, prop as any, sender || null, ...payload);
+                };
+            }
+        }
+    );
+}
+
 export class ActorRef<T> {
     constructor(public address: Address, private actorSystem: ActorSystem) {}
 
     send(sender?: Address) {
-        return this.invoke(sender) as ActorExternalAPI<T>;
+        return createProxy(this.actorSystem, this.address, sender) as ActorExternalAPI<T>;
     }
 
-    ask(sender?: Address) {
-        return this.invoke(sender) as ValidActorMethodProps<T>;
-    }
-
-    private invoke(sender?: Address) {
-        return new Proxy(
-            {},
-            {
-                get: (target, prop, receiver) => {
-                    return (...payload: any[]) =>
-                        this.actorSystem.sendMessageAndWait(
-                            this.address,
-                            prop as any,
-                            sender || null,
-                            ...payload
-                        );
-                }
-            }
-        );
-    }
+    // TODO: to be implemented
+    // ask(sender?: Address) {
+    //     return this.invoke(sender) as ValidActorMethodProps<T>;
+    // }
 }
 
 export abstract class Actor<InitParam = undefined> {
@@ -88,12 +111,13 @@ export abstract class Actor<InitParam = undefined> {
     }
 
     at<A>(targetRef: ActorRef<A> | Address) {
+        // TODO: use helper
         return new Proxy(
             {},
             {
                 get: (target, prop, receiver) => {
                     return (...payload: any[]) =>
-                        this.actorSystem.sendMessageAndWait(
+                        this.actorSystem.sendMessage(
                             targetRef,
                             prop as any,
                             this.address,
@@ -101,7 +125,7 @@ export abstract class Actor<InitParam = undefined> {
                         );
                 }
             }
-        ) as Handler<A>;
+        ) as ActorExternalAPI<A>;
     }
 
     // For some reason the typings is not working properly
