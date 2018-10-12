@@ -69,7 +69,7 @@ describe("Actor", () => {
         }).toThrowError();
     });
 
-    it("should be possible to send messages with proper payloads", done => {
+    it("should be possible to send message", done => {
         const counterActor = new ActorSystem().createActor({
             name: "myCounter",
             actorClass: CounterActor,
@@ -79,6 +79,15 @@ describe("Actor", () => {
             }
         });
         counterActor.send().increment();
+    });
+
+    it("should be possible to ask question", async () => {
+        const counterActor = new ActorSystem().createActor({
+            name: "myCounter",
+            actorClass: CounterActor
+        });
+        await counterActor.ask().increment();
+        await expect(counterActor.ask().currentCounterValue()).resolves.toBe(1);
     });
 
     it("should be possible to send messages with more than 1 payload", done => {
@@ -168,11 +177,16 @@ class DummyActor extends Actor implements DummyAPI {
 
 type CounterAPI = {
     increment: () => Promise<void>;
+    currentCounterValue: () => Promise<number>;
 };
 
 class CounterActor extends Actor<Listener<number>> implements CounterAPI {
     counter = 0;
     listener: Listener<number> | undefined;
+
+    currentCounterValue = async () => {
+        return this.counter;
+    };
 
     increment = async () => {
         this.counter = await asyncInc(this.counter);

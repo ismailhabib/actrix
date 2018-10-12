@@ -1,4 +1,4 @@
-import { Actor, ActorCons, ActorRef, ValidActorMethodProps } from "./Actor";
+import { Actor, ActorCons, ActorRef, ActorAskAPI } from "./Actor";
 import { EventEmitter } from "events";
 import {
     Message,
@@ -107,7 +107,7 @@ export class ActorSystem {
             (options as any).paramOptions,
             (options as any).strategies
         );
-        return this.ref<ValidActorMethodProps<T>>(fullAddress);
+        return this.ref<T>(fullAddress);
     };
 
     removeActor = (refOrAddress: ActorRef<any> | Address) => {
