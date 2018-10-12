@@ -90,6 +90,22 @@ describe("Actor", () => {
         await expect(counterActor.ask().currentCounterValue()).resolves.toBe(1);
     });
 
+    it("should not crash when sending message which handled incorrectly", () => {
+        const dummyActor = new ActorSystem().createActor({
+            name: "dummy",
+            actorClass: DummyActor
+        });
+        dummyActor.send().dummyCrash();
+    });
+
+    it("should crash when asking which handled incorrectly", async () => {
+        const dummyActor = new ActorSystem().createActor({
+            name: "dummy",
+            actorClass: DummyActor
+        });
+        await expect(dummyActor.ask().dummyCrash()).rejects.toBeInstanceOf(Error);
+    });
+
     it("should be possible to send messages with more than 1 payload", done => {
         const dummyActor = new ActorSystem().createActor({
             name: "myDummy",
@@ -147,6 +163,7 @@ type DummyAPI = {
     replyDummy: () => Promise<void>;
     registerCallback: (callback: (param1: string, param2: string) => void) => Promise<void>;
     dummy2Param: (param1: string, param2: string) => Promise<void>;
+    dummyCrash: () => Promise<void>;
 };
 
 class DummyActor extends Actor implements DummyAPI {
@@ -170,6 +187,10 @@ class DummyActor extends Actor implements DummyAPI {
 
     dummy2Param = async (param1: string, param2: string) => {
         this.callback && this.callback(param1, param2);
+    };
+
+    dummyCrash = async () => {
+        throw new Error("Crash!");
     };
 }
 
