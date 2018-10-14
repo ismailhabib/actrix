@@ -170,13 +170,13 @@ class DummyActor extends Actor implements DummyAPI {
     counter = 0;
     callback: ((param1: string, param2: string) => void) | undefined;
     dummy = async () => {
-        this.at<DummyAPI>(this.address).replyDummy();
+        this.sendTo<DummyAPI>(this.address).replyDummy();
     };
 
     replyDummy = async () => {
         const senderRef: ActorRef<DummyAPI> = this.context.senderRef!;
         if (this.counter === 0) {
-            this.at(senderRef).replyDummy();
+            this.sendTo(senderRef).replyDummy();
         }
         this.counter++;
     };

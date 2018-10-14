@@ -55,9 +55,9 @@ export type ActorCons<T extends Actor<K>, K = undefined> = new (
     strategies?: Strategy[]
 ) => T;
 
-function createProxy(
+function createProxy<T>(
     actorSystem: ActorSystem,
-    targetAddress: Address,
+    targetAddressorActorRef: Address | ActorRef<T>,
     sender?: Address,
     ask = false
 ) {
@@ -68,13 +68,13 @@ function createProxy(
                 return (...payload: any[]) => {
                     return ask
                         ? actorSystem.sendMessageAndWait(
-                              targetAddress,
+                              targetAddressorActorRef,
                               prop as any,
                               sender || null,
                               ...payload
                           )
                         : actorSystem.sendMessage(
-                              targetAddress,
+                              targetAddressorActorRef,
                               prop as any,
                               sender || null,
                               ...payload
@@ -167,33 +167,22 @@ export abstract class Actor<InitParam = undefined> {
         return promise;
     };
 
-    // TODO: 'ref' vs 'at' will confuse people
-    ref = <T>(address: Address) => {
+    protected ref = <T>(address: Address) => {
         return this.actorSystem.ref<T>(address);
     };
 
-    protected at<A>(targetRef: ActorRef<A> | Address) {
-        // TODO: use helper
-        return new Proxy(
-            {},
-            {
-                get: (target, prop, receiver) => {
-                    return (...payload: any[]) =>
-                        this.actorSystem.sendMessage(
-                            targetRef,
-                            prop as any,
-                            this.address,
-                            ...payload
-                        );
-                }
-            }
-        ) as ActorSendAPI<A>;
+    protected sendTo<A>(targetRef: ActorRef<A> | Address) {
+        return createProxy(this.actorSystem, targetRef, this.address) as ActorSendAPI<A>;
+    }
+
+    protected askTo<A>(targetRef: ActorRef<A> | Address) {
+        return createProxy(this.actorSystem, targetRef, this.address, true) as ActorAskAPI<A>;
     }
 
     // For some reason the typings is not working properly
-    protected atSelf() {
+    protected sendToSelf() {
         // return this.at<ValidActorMethodProps<this>>(this.address);
-        return this.at<any>(this.address); // TODO: introduce generic for actor
+        return this.sendTo<any>(this.address); // TODO: introduce generic for actor
     }
 
     protected onNewMessage = <

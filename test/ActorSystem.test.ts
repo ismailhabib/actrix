@@ -10,23 +10,22 @@ describe("Actor System", () => {
         const actorSystem = new ActorSystem();
     });
 
-    // TODO: only for "ask" operation
-    // it("should handle exception when message is sent to an actor in a non-existent ActorSystem", async done => {
-    //     const actorSystem = new ActorSystem();
-    //     try {
-    //         await actorSystem.sendMessage(
-    //             { actorSystemName: "non-existent actor", localAddress: "random address" },
-    //             "random-type",
-    //             null,
-    //             null
-    //         );
-    //         fail(
-    //             "Sending message to an actor in a non-existent actor system should throw an exception"
-    //         );
-    //     } catch (exception) {
-    //         done();
-    //     }
-    // });
+    it("should handle exception when message is sent to an actor in a non-existent ActorSystem", async done => {
+        const actorSystem = new ActorSystem();
+        try {
+            await actorSystem.sendMessageAndWait(
+                { actorSystemName: "non-existent actor", localAddress: "random address" },
+                "random-type",
+                null,
+                null
+            );
+            fail(
+                "Sending message to an actor in a non-existent actor system should throw an exception"
+            );
+        } catch (exception) {
+            done();
+        }
+    });
 });
 
 let server: http.Server;
@@ -71,32 +70,32 @@ describe("Multi-Actor System", () => {
     });
 
     // TODO: only relevant when we have "ask" feature
-    // it("should throw exception when trying to send message to an actor of a disconnected actor system", done => {
-    //     serverActor.send().registerListener(() => {
-    //         fail();
-    //     });
-    //     const socket = ioClient.connect(`http://localhost:${port}`);
-    //     const clientActorSystem = new ActorSystem();
-    //     clientActorSystem.register(socket);
-    //     const actorRef = clientActorSystem.createActor({
-    //         name: "clientActor",
-    //         actorClass: ClientActor
-    //     });
-    //     setTimeout(() => {
-    //         socket.disconnect();
-    //         actorRef
-    //             .ask()
-    //             .trigger()
-    //             .then(
-    //                 () => {
-    //                     fail();
-    //                 },
-    //                 exception => {
-    //                     done();
-    //                 }
-    //             );
-    //     }, 1000); // give time for the handshake
-    // });
+    it("should throw exception when trying to send message to an actor of a disconnected actor system", done => {
+        serverActor.send().registerListener(() => {
+            fail();
+        });
+        const socket = ioClient.connect(`http://localhost:${port}`);
+        const clientActorSystem = new ActorSystem();
+        clientActorSystem.register(socket);
+        const actorRef = clientActorSystem.createActor({
+            name: "clientActor",
+            actorClass: ClientActor
+        });
+        setTimeout(() => {
+            socket.disconnect();
+            actorRef
+                .ask()
+                .trigger()
+                .then(
+                    () => {
+                        fail();
+                    },
+                    exception => {
+                        done();
+                    }
+                );
+        }, 1000); // give time for the handshake
+    });
 
     it("should allow actors to send message in different actor system after reconnection", done => {
         serverActor.send().registerListener(() => {
@@ -128,7 +127,7 @@ type ClientAPI = {
 
 class ClientActor extends Actor implements ClientAPI {
     trigger = async () => {
-        await this.at<ServerAPI>({
+        this.sendTo<ServerAPI>({
             actorSystemName: "server",
             localAddress: "serverActor"
         }).connect("1", "2");
