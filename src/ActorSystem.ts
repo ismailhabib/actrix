@@ -107,7 +107,7 @@ export class ActorSystem {
             (options as any).paramOptions,
             (options as any).strategies
         );
-        return this.ref<T>(fullAddress);
+        return this.ref<ActorAskAPI<T>>(fullAddress);
     };
 
     removeActor = (refOrAddress: ActorRef<any> | Address) => {
