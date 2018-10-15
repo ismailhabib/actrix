@@ -82,14 +82,14 @@ Create a new actor inside the actorSystem. The options parameter are as follow:
 #### From an Actor
 
 ```TypeScript
-this.at(actorRef).yourMethodName(payload?);
+this.sendTo(actorRef).yourMethodName(payload?);
 ```
 
 **actorRef**: _(Required)_ the target actorRef where we send the message to<br/>
 **payload**: _(As defined by the target actor)_ payload of the message as defined by the target actor
 
 ```TypeScript
-this.at<TargetActorAPI>(address).yourMethodName(payload?);
+this.sendTo<TargetActorAPI>(address).yourMethodName(payload?);
 ```
 
 **address**: _(Required)_ the target address where we send the message to, if `TargetActorAPI` is not specified then there will be no compile-time check<br/>
@@ -98,7 +98,7 @@ this.at<TargetActorAPI>(address).yourMethodName(payload?);
 #### From Everywhere Else
 
 ```TypeScript
-actorRef.invoke(sender?).yourMethodName(payload?);
+actorRef.send(sender?).yourMethodName(payload?);
 ```
 
 This is the typical way to send a message to an actor from outside of actors. Sender parameter is optional, but if you need to use it, better to just use the previous API.
@@ -110,7 +110,7 @@ This is the typical way to send a message to an actor from outside of actors. Se
 
 ```TypeScript
 const senderRef = this.context.senderRef;
-this.at(senderRef).yourMethodName(payload?);
+this.sendTo(senderRef).yourMethodName(payload?);
 ```
 
 ### Getting Address of Actors

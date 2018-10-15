@@ -69,7 +69,7 @@ describe("Actor", () => {
         }).toThrowError();
     });
 
-    it("should be possible to send messages with proper payloads", done => {
+    it("should be possible to send message", done => {
         const counterActor = new ActorSystem().createActor({
             name: "myCounter",
             actorClass: CounterActor,
@@ -78,7 +78,32 @@ describe("Actor", () => {
                 done();
             }
         });
-        counterActor.invoke().increment();
+        counterActor.send().increment();
+    });
+
+    it("should be possible to ask question", async () => {
+        const counterActor = new ActorSystem().createActor({
+            name: "myCounter",
+            actorClass: CounterActor
+        });
+        await counterActor.ask().increment();
+        await expect(counterActor.ask().currentCounterValue()).resolves.toBe(1);
+    });
+
+    it("should not crash when sending message which handled incorrectly", () => {
+        const dummyActor = new ActorSystem().createActor({
+            name: "dummy",
+            actorClass: DummyActor
+        });
+        dummyActor.send().dummyCrash();
+    });
+
+    it("should crash when asking which handled incorrectly", async () => {
+        const dummyActor = new ActorSystem().createActor({
+            name: "dummy",
+            actorClass: DummyActor
+        });
+        await expect(dummyActor.ask().dummyCrash()).rejects.toBeInstanceOf(Error);
     });
 
     it("should be possible to send messages with more than 1 payload", done => {
@@ -86,12 +111,12 @@ describe("Actor", () => {
             name: "myDummy",
             actorClass: DummyActor
         });
-        dummyActor.invoke().registerCallback((param1, param2) => {
+        dummyActor.send().registerCallback((param1, param2) => {
             expect(param1).toBe("one");
             expect(param2).toBe("two");
             done();
         });
-        dummyActor.invoke().dummy2Param("one", "two");
+        dummyActor.send().dummy2Param("one", "two");
     });
 
     it("should be able to send message to another actor", () => {
@@ -99,7 +124,7 @@ describe("Actor", () => {
             name: "myDummy",
             actorClass: DummyActor
         });
-        dummyActor.invoke().dummy();
+        dummyActor.send().dummy();
     });
 
     it("should be able to cancel execution", done => {
@@ -111,39 +136,9 @@ describe("Actor", () => {
                 done();
             }
         });
-        switcherActor
-            .invoke()
-            .changeRoom("one")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
-        switcherActor
-            .invoke()
-            .changeRoom("two")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
-        switcherActor
-            .invoke()
-            .changeRoom("three")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
+        switcherActor.send().changeRoom("one");
+        switcherActor.send().changeRoom("two");
+        switcherActor.send().changeRoom("three");
     });
 
     it("should be able to ignore older messages with the same type", done => {
@@ -156,39 +151,9 @@ describe("Actor", () => {
             },
             strategies: ["IgnoreOlderMessageWithTheSameType"]
         });
-        switcherActor
-            .invoke()
-            .changeRoom("one")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
-        switcherActor
-            .invoke()
-            .changeRoom("two")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
-        switcherActor
-            .invoke()
-            .changeRoom("three")
-            .then(
-                () => {
-                    /* nothing */
-                },
-                () => {
-                    /* nothing */
-                }
-            );
+        switcherActor.send().changeRoom("one");
+        switcherActor.send().changeRoom("two");
+        switcherActor.send().changeRoom("three");
     });
 });
 
@@ -198,19 +163,20 @@ type DummyAPI = {
     replyDummy: () => Promise<void>;
     registerCallback: (callback: (param1: string, param2: string) => void) => Promise<void>;
     dummy2Param: (param1: string, param2: string) => Promise<void>;
+    dummyCrash: () => Promise<void>;
 };
 
 class DummyActor extends Actor implements DummyAPI {
     counter = 0;
     callback: ((param1: string, param2: string) => void) | undefined;
     dummy = async () => {
-        this.at<DummyAPI>(this.address).replyDummy();
+        this.sendTo<DummyAPI>(this.address).replyDummy();
     };
 
     replyDummy = async () => {
         const senderRef: ActorRef<DummyAPI> = this.context.senderRef!;
         if (this.counter === 0) {
-            this.at(senderRef).replyDummy();
+            this.sendTo(senderRef).replyDummy();
         }
         this.counter++;
     };
@@ -222,17 +188,26 @@ class DummyActor extends Actor implements DummyAPI {
     dummy2Param = async (param1: string, param2: string) => {
         this.callback && this.callback(param1, param2);
     };
+
+    dummyCrash = async () => {
+        throw new Error("Crash!");
+    };
 }
 
 // Counter
 
 type CounterAPI = {
     increment: () => Promise<void>;
+    currentCounterValue: () => Promise<number>;
 };
 
 class CounterActor extends Actor<Listener<number>> implements CounterAPI {
     counter = 0;
     listener: Listener<number> | undefined;
+
+    currentCounterValue = async () => {
+        return this.counter;
+    };
 
     increment = async () => {
         this.counter = await asyncInc(this.counter);

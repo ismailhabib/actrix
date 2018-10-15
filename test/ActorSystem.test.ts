@@ -13,7 +13,7 @@ describe("Actor System", () => {
     it("should handle exception when message is sent to an actor in a non-existent ActorSystem", async done => {
         const actorSystem = new ActorSystem();
         try {
-            await actorSystem.sendMessage(
+            await actorSystem.sendMessageAndWait(
                 { actorSystemName: "non-existent actor", localAddress: "random address" },
                 "random-type",
                 null,
@@ -52,7 +52,7 @@ describe("Multi-Actor System", () => {
     });
 
     it("should allow actors to send message in different actor system", done => {
-        serverActor.invoke().registerListener((param1, param2) => {
+        serverActor.send().registerListener((param1, param2) => {
             expect(param1).toBe("1");
             expect(param2).toBe("2");
             done();
@@ -65,12 +65,12 @@ describe("Multi-Actor System", () => {
             actorClass: ClientActor
         });
         setTimeout(() => {
-            actorRef.invoke().trigger();
+            actorRef.send().trigger();
         }, 3000); // give time for the handshake
     });
 
-    it("should throw exception when trying to send message to an actor of a disconnected actor system", done => {
-        serverActor.invoke().registerListener(() => {
+    it("should throw exception when trying to ask question to an actor of a disconnected actor system", done => {
+        serverActor.send().registerListener(() => {
             fail();
         });
         const socket = ioClient.connect(`http://localhost:${port}`);
@@ -83,7 +83,7 @@ describe("Multi-Actor System", () => {
         setTimeout(() => {
             socket.disconnect();
             actorRef
-                .invoke()
+                .ask()
                 .trigger()
                 .then(
                     () => {
@@ -95,8 +95,9 @@ describe("Multi-Actor System", () => {
                 );
         }, 1000); // give time for the handshake
     });
+
     it("should allow actors to send message in different actor system after reconnection", done => {
-        serverActor.invoke().registerListener(() => {
+        serverActor.send().registerListener(() => {
             done();
         });
         const socket = ioClient.connect(`http://localhost:${port}`, {
@@ -113,7 +114,7 @@ describe("Multi-Actor System", () => {
             socket.disconnect();
             socket.connect();
             setTimeout(() => {
-                actorRef.invoke().trigger();
+                actorRef.send().trigger();
             }, 1000);
         }, 1000); // give time for the handshake
     });
@@ -125,7 +126,7 @@ type ClientAPI = {
 
 class ClientActor extends Actor implements ClientAPI {
     trigger = async () => {
-        await this.at<ServerAPI>({
+        await this.askTo<ServerAPI>({
             actorSystemName: "server",
             localAddress: "serverActor"
         }).connect("1", "2");

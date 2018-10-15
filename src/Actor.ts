@@ -9,7 +9,34 @@ export type MailBoxMessage<T> = {
     callback: (error?: any, result?: any) => void;
 };
 
-export type ValidActorMethodProps<T> = Pick<T, ValidActorMethodPropNames<T>>;
+export type ActorSendAPI<T> = {
+    [K in ValidActorMethodPropNames<T>]: T[K] extends () => any
+        ? () => void
+        : T[K] extends (arg1: infer A1) => any
+            ? (arg: A1) => void
+            : T[K] extends (arg1: infer A1, arg2: infer A2) => any
+                ? (arg1: A1, arg2: A2) => void
+                : T[K] extends (arg1: infer A1, arg2: infer A2, arg3: infer A3) => any
+                    ? (arg1: A1, arg2: A2, arg3: A3) => void
+                    : T[K] extends (
+                          arg1: infer A1,
+                          arg2: infer A2,
+                          arg3: infer A3,
+                          arg4: infer A4
+                      ) => any
+                        ? (arg1: A1, arg2: A2, arg3: A3, arg4: A4) => void
+                        : T[K] extends (
+                              arg1: infer A1,
+                              arg2: infer A2,
+                              arg3: infer A3,
+                              arg4: infer A4,
+                              arg5: infer A5
+                          ) => any
+                            ? (arg1: A1, arg2: A2, arg3: A3, arg4: A4, arg5: A5) => void
+                            : never
+};
+
+export type ActorAskAPI<T> = Pick<T, ValidActorMethodPropNames<T>>;
 export type ValidActorMethodPropNames<T> = {
     [K in Exclude<keyof T, keyof Actor>]: T[K] extends (...args: any[]) => infer R
         ? R extends Promise<any> ? K : never
@@ -28,24 +55,45 @@ export type ActorCons<T extends Actor<K>, K = undefined> = new (
     strategies?: Strategy[]
 ) => T;
 
+function createProxy<T>(
+    actorSystem: ActorSystem,
+    targetAddressorActorRef: Address | ActorRef<T>,
+    sender?: Address,
+    ask = false
+) {
+    return new Proxy(
+        {},
+        {
+            get: (target, prop, receiver) => {
+                return (...payload: any[]) => {
+                    return ask
+                        ? actorSystem.sendMessageAndWait(
+                              targetAddressorActorRef,
+                              prop as any,
+                              sender || null,
+                              ...payload
+                          )
+                        : actorSystem.sendMessage(
+                              targetAddressorActorRef,
+                              prop as any,
+                              sender || null,
+                              ...payload
+                          );
+                };
+            }
+        }
+    );
+}
+
 export class ActorRef<T> {
     constructor(public address: Address, private actorSystem: ActorSystem) {}
 
-    invoke(sender?: Address) {
-        return new Proxy(
-            {},
-            {
-                get: (target, prop, receiver) => {
-                    return (...payload: any[]) =>
-                        this.actorSystem.sendMessage(
-                            this.address,
-                            prop as any,
-                            sender || null,
-                            ...payload
-                        );
-                }
-            }
-        ) as ValidActorMethodProps<T>;
+    send(sender?: Address) {
+        return createProxy(this.actorSystem, this.address, sender) as ActorSendAPI<T>;
+    }
+
+    ask(sender?: Address) {
+        return createProxy(this.actorSystem, this.address, sender, true) as ActorAskAPI<T>;
     }
 }
 
@@ -77,37 +125,6 @@ export abstract class Actor<InitParam = undefined> {
             this.init(options);
         });
     }
-
-    at<A>(targetRef: ActorRef<A> | Address) {
-        return new Proxy(
-            {},
-            {
-                get: (target, prop, receiver) => {
-                    return (...payload: any[]) =>
-                        this.actorSystem.sendMessage(
-                            targetRef,
-                            prop as any,
-                            this.address,
-                            ...payload
-                        );
-                }
-            }
-        ) as Handler<A>;
-    }
-
-    // For some reason the typings is not working properly
-    atSelf() {
-        // return this.at<ValidActorMethodProps<this>>(this.address);
-        return this.at<any>(this.address); // TODO: introduce generic for actor
-    }
-
-    onNewMessage = <K extends ValidActorMethodPropNames<this>, L extends PayloadPropNames<this>>(
-        type: K,
-        senderAddress: Address | null,
-        ...payload: L[]
-    ) => {
-        // should be overridden by implementator (when necessary)
-    };
 
     pushToMailbox = <K extends ValidActorMethodPropNames<this>, L extends PayloadPropNames<this>>(
         type: K,
@@ -150,11 +167,34 @@ export abstract class Actor<InitParam = undefined> {
         return promise;
     };
 
-    // TODO: 'ref' vs 'at' will confuse people
-    ref = <T>(address: Address) => {
+    protected ref = <T>(address: Address) => {
         return this.actorSystem.ref<T>(address);
     };
 
+    protected sendTo<A>(targetRef: ActorRef<A> | Address) {
+        return createProxy(this.actorSystem, targetRef, this.address) as ActorSendAPI<A>;
+    }
+
+    protected askTo<A>(targetRef: ActorRef<A> | Address) {
+        return createProxy(this.actorSystem, targetRef, this.address, true) as ActorAskAPI<A>;
+    }
+
+    // For some reason the typings is not working properly
+    protected sendToSelf() {
+        // return this.at<ValidActorMethodProps<this>>(this.address);
+        return this.sendTo<any>(this.address); // TODO: introduce generic for actor
+    }
+
+    protected onNewMessage = <
+        K extends ValidActorMethodPropNames<this>,
+        L extends PayloadPropNames<this>
+    >(
+        type: K,
+        senderAddress: Address | null,
+        ...payload: L[]
+    ) => {
+        // should be overridden by implementator (when necessary)
+    };
     protected init(options?: InitParam) {
         // can be implemented by the concrete actor
     }
@@ -217,6 +257,7 @@ export abstract class Actor<InitParam = undefined> {
             this.currentPromise = this.handleMessage(type, ...payload);
             try {
                 result = await this.currentPromise;
+                this.log("Output of the handled message", result);
                 success = true;
             } catch (error) {
                 this.log("Caught an exception when handling message", error);
