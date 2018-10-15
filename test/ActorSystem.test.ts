@@ -69,8 +69,7 @@ describe("Multi-Actor System", () => {
         }, 3000); // give time for the handshake
     });
 
-    // TODO: only relevant when we have "ask" feature
-    it("should throw exception when trying to send message to an actor of a disconnected actor system", done => {
+    it("should throw exception when trying to ask question to an actor of a disconnected actor system", done => {
         serverActor.send().registerListener(() => {
             fail();
         });
@@ -127,7 +126,7 @@ type ClientAPI = {
 
 class ClientActor extends Actor implements ClientAPI {
     trigger = async () => {
-        this.sendTo<ServerAPI>({
+        await this.askTo<ServerAPI>({
             actorSystemName: "server",
             localAddress: "serverActor"
         }).connect("1", "2");
