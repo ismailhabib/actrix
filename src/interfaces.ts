@@ -31,6 +31,7 @@ export type InterActorSystemMessage =
           mode: "send" | "ask"; // 'send' is probably no longer needed
           type: string;
           payload: any[];
+          id: number;
           targetAddress: Address;
           senderAddress: Address | null;
       }
