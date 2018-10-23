@@ -62,19 +62,19 @@ export class ActorSystem {
                 const actorRef = this.findActor(interActorSystemMessage.targetAddress);
                 this.log("The destination address is", interActorSystemMessage.targetAddress);
                 if (actorRef) {
-                    const { mode, type, payload, senderAddress } = interActorSystemMessage;
+                    const { mode, type, payload, id, senderAddress } = interActorSystemMessage;
                     if (mode === "send") {
                         this.log(
                             `Sending the message to the appropriate actor. Type: ${type}, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        this.sendMessageAndWait(actorRef, type, senderAddress, ...payload);
+                        this.sendMessageAndWait(actorRef, type, senderAddress, id, ...payload);
                     } else {
                         this.log(
                             `Sending the question to the appropriate actor. Type: ${type}, sender: ${senderAddress}, and payload:`,
                             payload
                         );
-                        this.sendMessageAndWait(actorRef, type, senderAddress, ...payload).then(
+                        this.sendMessageAndWait(actorRef, type, senderAddress, id, ...payload).then(
                             message => {
                                 this.log(
                                     `Received an answer, sending the answer "${message}" for the question with type: ${type}, sender: ${senderAddress}, and payload:`,
@@ -111,12 +111,7 @@ export class ActorSystem {
     };
 
     removeActor = (refOrAddress: ActorRef<any> | Address) => {
-        let address: Address;
-        if (refOrAddress instanceof ActorRef) {
-            address = refOrAddress.address;
-        } else {
-            address = refOrAddress;
-        }
+        const address = addressOf(refOrAddress);
 
         if (address.actorSystemName !== this.name) {
             throw new Error("Cannot remove actor that does not belong to this actor system");
@@ -130,8 +125,12 @@ export class ActorSystem {
         }
     };
 
-    ref = <T>(address: Address): ActorRef<T> => {
-        return new ActorRef<T>(address, this);
+    ref = <T>(addressOrActorRef: Address | ActorRef<T>): ActorRef<T> => {
+        if (addressOrActorRef instanceof ActorRef) {
+            return addressOrActorRef;
+        } else {
+            return new ActorRef<T>(addressOrActorRef, this);
+        }
     };
 
     findActor = <T>(address: Address): ActorRef<T> | null => {
@@ -153,9 +152,10 @@ export class ActorSystem {
         target: ActorRef<any> | Address,
         type: string,
         senderAddress: Address | null,
+        id: number,
         ...payload: any[]
     ): void => {
-        this.sendMessageAndWait(target, type, senderAddress, ...payload).then(
+        this.sendMessageAndWait(target, type, senderAddress, id, ...payload).then(
             () => {
                 /* do nothing */
             },
@@ -179,6 +179,7 @@ export class ActorSystem {
         target: ActorRef<any> | Address,
         type: string,
         senderAddress: Address | null,
+        id: number,
         ...payload: any[]
     ): Promise<any> => {
         this.log(
@@ -190,18 +191,13 @@ export class ActorSystem {
             "Payload",
             payload
         );
-        let address: Address;
-        if (target instanceof ActorRef) {
-            address = target.address;
-        } else {
-            address = target;
-        }
+        const address = addressOf(target);
 
         if (this.isLocalAddress(address)) {
             const actor = this.actorRegistry[address.localAddress];
             if (actor) {
                 this.log("Found the actor. Sending the message");
-                return actor.pushToMailbox(type, senderAddress, ...payload);
+                return actor.pushToMailbox(type, senderAddress, id, ...payload);
             } else {
                 this.log("Unable to find the actor. It might have died");
                 return Promise.reject("Actor not found");
@@ -218,6 +214,7 @@ export class ActorSystem {
                             targetAddress: address,
                             senderAddress: senderAddress,
                             type: type,
+                            id: id,
                             payload: payload
                         },
                         message => resolve(message)
@@ -234,6 +231,11 @@ export class ActorSystem {
         return address.actorSystemName === this.name;
     }
 
+    _getMessageId(addressOrActorRef: Address | ActorRef<any>) {
+        const address = addressOf(addressOrActorRef);
+        const actor = this.actorRegistry[address.localAddress];
+        return actor.currentMessageId;
+    }
     private log(...message: any[]) {
         if (
             (process.env && process.env.ACTRIX_DEBUG) ||
@@ -242,4 +244,14 @@ export class ActorSystem {
             console.log(`[${this.name}]`, ...message);
         }
     }
+}
+
+function addressOf(addressOrActorRef: Address | ActorRef<any>) {
+    let address: Address;
+    if (addressOrActorRef instanceof ActorRef) {
+        address = addressOrActorRef.address;
+    } else {
+        address = addressOrActorRef;
+    }
+    return address;
 }

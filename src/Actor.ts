@@ -6,6 +6,7 @@ export type MailBoxMessage<T> = {
     type: ValidActorMethodPropNames<T>;
     payload: PayloadPropNames<T>[];
     senderAddress: Address | null;
+    id: number;
     callback: (error?: any, result?: any) => void;
 };
 
@@ -71,12 +72,14 @@ function createProxy<T>(
                               targetAddressorActorRef,
                               prop as any,
                               sender || null,
+                              sender ? actorSystem._getMessageId(sender) : 0,
                               ...payload
                           )
                         : actorSystem.sendMessage(
                               targetAddressorActorRef,
                               prop as any,
                               sender || null,
+                              sender ? actorSystem._getMessageId(sender) : 0,
                               ...payload
                           );
                 };
@@ -111,6 +114,7 @@ export abstract class Actor<InitParam = undefined> {
 
     private timerId: any | null;
     private currentPromise: Promise<any> | CancellablePromise<any> | undefined;
+    private _currentMessageId = 0;
 
     constructor(
         name: string,
@@ -126,9 +130,14 @@ export abstract class Actor<InitParam = undefined> {
         });
     }
 
+    get currentMessageId() {
+        return this._currentMessageId++;
+    }
+
     pushToMailbox = <K extends ValidActorMethodPropNames<this>, L extends PayloadPropNames<this>>(
         type: K,
         senderAddress: Address | null,
+        id: number,
         ...payload: L[]
     ): Promise<any> => {
         this.log(
@@ -154,6 +163,7 @@ export abstract class Actor<InitParam = undefined> {
                 type,
                 payload,
                 senderAddress,
+                id,
                 callback: (error, result) => {
                     if (error) {
                         reject(error);
