@@ -53,6 +53,12 @@ class YourActor extends Actor<number> implements YourActorAPI {
         // Implementation
         ...
     }
+
+    // Optional, only needed if you want to do something special when a message is coming to the mailbox
+    onNewMessage = (type, payload, senderAddress) => {
+        // Do something here
+        ...
+    };
 }
 ```
 
@@ -117,6 +123,19 @@ this.sendTo(senderRef).yourMethodName(payload?);
 
 ```TypeScript
 const address = actorRef.address;
+```
+
+### Creating Cancellable Promise
+
+```TypeScript
+const cancellablePromise = promisify(generatorFunction);
+```
+
+### Cancelling Current Execution
+
+This is typically triggered inside the `onNewMessage` and only make a difference when the current execution is in form of `CancellablePromise`.
+```TypeScript
+this.cancelCurrentExecution();
 ```
 
 ## Examples
