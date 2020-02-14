@@ -4526,7 +4526,7 @@ once@^1.3.0, once@^1.3.3, once@^1.4.0:
 
 onetime@^1.0.0:
   version "1.1.0"
-  resolved "http://registry.npmjs.org/onetime/-/onetime-1.1.0.tgz#a1f7838f8314c516f05ecefcbc4ccfe04b4ed789"
+  resolved "https://registry.npmjs.org/onetime/-/onetime-1.1.0.tgz#a1f7838f8314c516f05ecefcbc4ccfe04b4ed789"
 
 optimist@^0.6.1:
   version "0.6.1"
@@ -6585,8 +6585,8 @@ yargs@~3.10.0:
     window-size "0.1.0"
 
 yarn@^1.5.1:
-  version "1.5.1"
-  resolved "https://registry.yarnpkg.com/yarn/-/yarn-1.5.1.tgz#e8680360e832ac89521eb80dad3a7bc27a40bab4"
+  version "1.22.0"
+  resolved "https://registry.yarnpkg.com/yarn/-/yarn-1.22.0.tgz#acf82906e36bcccd1ccab1cfb73b87509667c881"
 
 yeast@0.1.2:
   version "0.1.2"
