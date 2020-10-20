@@ -79,7 +79,7 @@
     "@types/socket.io-client": "^1.4.32",
     "@types/uuid": "^3.4.3",
     "colors": "^1.1.2",
-    "commitizen": "^2.9.6",
+    "commitizen": "^4.2.2",
     "coveralls": "^3.0.0",
     "cross-env": "^5.0.1",
     "cz-conventional-changelog": "^2.0.0",
